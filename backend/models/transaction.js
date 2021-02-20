@@ -20,6 +20,12 @@ module.exports = (Sequelize, db) => {
         },
       },
     },
+
+    description: {
+      type: Sequelize.STRING(256),
+      allowNull: false,
+      notEmpty: true,
+    },
   });
   return Transaction;
 };
