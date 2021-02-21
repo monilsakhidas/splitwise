@@ -24,6 +24,18 @@ module.exports = (Sequelize, db) => {
       allowNull: true,
       defaultValue: null,
     },
+
+    createdAt: {
+      type: Sequelize.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn("now"),
+    },
+
+    updatedAt: {
+      type: Sequelize.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn("now"),
+    },
   });
   return Group;
 };

@@ -17,5 +17,15 @@ config.database.maxConnections = 5;
 config.database.maxIdleTime = 30;
 config.database.ssl = "Amazon RDS";
 
+// Secret Key for generating jwts
+config.jwt = {};
+
+config.jwt.secretKey = "secretkey";
+
+// Setting error messages of sequalize
+config.errors = {};
+
+config.errors.uniqueErrorName = "SequelizeUniqueConstraintError";
+config.errors.validationErrorName = "SequelizeValidationError";
 // exporting config file
 module.exports = config;

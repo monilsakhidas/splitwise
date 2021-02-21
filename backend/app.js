@@ -1,40 +1,27 @@
 "use strict";
-// const mysql = require("mysql");
 
-// const dbConfig = {
-//   RDS_HOSTNAME: "splitwise-db.chujwvgyk4ce.us-east-2.rds.amazonaws.com",
-//   RDS_USERNAME: "admin",
-//   RDS_PASSWORD: "adminadmin",
-//   RDS_PORT: "3306",
-// };
+// imports
+const express = require("express");
+const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
+const user = require("./users/routes");
 
-// const connection = mysql.createConnection({
-//   host: dbConfig.RDS_HOSTNAME,
-//   user: dbConfig.RDS_USERNAME,
-//   password: dbConfig.RDS_PASSWORD,
-//   port: dbConfig.RDS_PORT,
-// });
+// port number
+const PORT = 3000;
 
-// connection.connect(function (err) {
-//   if (err) {
-//     console.error("Database connection failed: " + err.stack);
-//     return;
-//   }
+// app
+const app = express();
 
-//   console.log("Connected to database.");
-// });
+// middlewares
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static("public"));
 
-// connection.end();
-// Import the sequelize object on which
-// we have defined model.
-// const db = require("./utils/database");
+// routes
+app.use("/users", user);
 
-// // Import the user model we have defined
-// const User = require("./models/user");
-
-// Create all the table defined using
-// sequelize in Database
-
-// Sync all models that are not
-// already in the database
-// db.sync();
+//starting the server
+app.listen(PORT, () => {
+  console.log("Server listening on port: ", PORT);
+});

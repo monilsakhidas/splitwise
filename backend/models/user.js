@@ -68,13 +68,13 @@ module.exports = (Sequelize, db) => {
     createdAt: {
       type: Sequelize.DATE,
       allowNull: true,
-      defaultValue: Sequelize.DATE,
+      defaultValue: Sequelize.fn("now"),
     },
 
     updatedAt: {
       type: Sequelize.DATE,
       allowNull: true,
-      defaultValue: Sequelize.DATE,
+      defaultValue: Sequelize.fn("now"),
     },
   });
   return User;

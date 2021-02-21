@@ -26,6 +26,18 @@ module.exports = (Sequelize, db) => {
       allowNull: false,
       notEmpty: true,
     },
+
+    createdAt: {
+      type: Sequelize.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn("now"),
+    },
+
+    updatedAt: {
+      type: Sequelize.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn("now"),
+    },
   });
   return Transaction;
 };

@@ -28,6 +28,18 @@ module.exports = (Sequelize, db) => {
         notEmpty: true,
       },
     },
+
+    createdAt: {
+      type: Sequelize.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn("now"),
+    },
+
+    updatedAt: {
+      type: Sequelize.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn("now"),
+    },
   });
   return Currency;
 };

@@ -14,7 +14,9 @@ models.members = require("./member")(Sequelize, db);
 //defining all the relations
 
 // User currency fk
-models.users.belongsTo(models.currencies, { foreignKey: "currencyId" });
+models.users.belongsTo(models.currencies, {
+  foreignKey: { name: "currencyId", defaultValue: 1 },
+});
 
 // Group user fk
 models.groups.belongsTo(models.users, { foreignKey: "createdBy" });
