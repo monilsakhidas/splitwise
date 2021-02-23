@@ -1,32 +1,17 @@
 "use strict";
 
 module.exports = (Sequelize, db) => {
-  const Currency = db.define("currency", {
+  const Activity = db.define("activity", {
     id: {
       type: Sequelize.BIGINT,
       autoIncrement: true,
       allowNull: false,
       primaryKey: true,
     },
-
-    name: {
-      type: Sequelize.STRING(64),
+    balance: {
+      type: Sequelize.DOUBLE,
       allowNull: false,
-      unique: true,
-      validate: {
-        notEmpty: true,
-      },
     },
-
-    symbol: {
-      type: Sequelize.STRING(1),
-      allowNull: false,
-      unique: true,
-      validate: {
-        notEmpty: true,
-      },
-    },
-
     createdAt: {
       type: Sequelize.DATE,
       allowNull: true,
@@ -39,5 +24,5 @@ module.exports = (Sequelize, db) => {
       defaultValue: Sequelize.fn("now"),
     },
   });
-  return Currency;
+  return Activity;
 };

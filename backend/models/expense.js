@@ -1,43 +1,39 @@
 "use strict";
 
 module.exports = (Sequelize, db) => {
-  const Currency = db.define("currency", {
+  const Expense = db.define("expense", {
     id: {
       type: Sequelize.BIGINT,
       autoIncrement: true,
       allowNull: false,
       primaryKey: true,
     },
-
-    name: {
-      type: Sequelize.STRING(64),
+    description: {
+      type: Sequelize.STRING(256),
       allowNull: false,
-      unique: true,
+      notEmpty: true,
+    },
+    amount: {
+      type: Sequelize.DOUBLE,
+      allowNull: false,
       validate: {
-        notEmpty: true,
+        isZeroOrLesser(value) {
+          if (value <= 0) {
+            throw new Error("Value should be a positive number");
+          }
+        },
       },
     },
-
-    symbol: {
-      type: Sequelize.STRING(1),
-      allowNull: false,
-      unique: true,
-      validate: {
-        notEmpty: true,
-      },
-    },
-
     createdAt: {
       type: Sequelize.DATE,
       allowNull: true,
       defaultValue: Sequelize.fn("now"),
     },
-
     updatedAt: {
       type: Sequelize.DATE,
       allowNull: true,
       defaultValue: Sequelize.fn("now"),
     },
   });
-  return Currency;
+  return Expense;
 };

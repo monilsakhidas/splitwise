@@ -27,5 +27,10 @@ config.errors = {};
 
 config.errors.uniqueErrorName = "SequelizeUniqueConstraintError";
 config.errors.validationErrorName = "SequelizeValidationError";
+config.errors.foreignKeyError = "SequelizeForeignKeyConstraintError";
+
+// Setting global search limit
+config.searchLimit = 10;
+
 // exporting config file
 module.exports = config;

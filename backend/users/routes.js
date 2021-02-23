@@ -5,6 +5,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const models = require("../models/model_relations");
 const config = require("../configuration/config");
+const utils = require("../helpers/utils");
 const jwt = require("jsonwebtoken");
 const Joi = require("joi");
 const router = express.Router();
@@ -14,7 +15,7 @@ router.post("/signup", async (req, res) => {
   // Creating schema for validating input
   const schema = Joi.object({
     name: Joi.string().alphanum().min(1).max(64).required().messages({
-      "string.required": "Name is required",
+      "any.required": "Name is required",
       "string.empty": "Name cannot be empty.",
     }),
     email: Joi.string()
@@ -26,16 +27,16 @@ router.post("/signup", async (req, res) => {
       .messages({
         "string.email": "Must be a valid email.",
         "string.empty": "Email cannot be empty.",
-        "string.required": "Email is required.",
+        "any.required": "Email is required.",
       }),
     password: Joi.string().required().messages({
       "string.empty": "Password is required.",
-      "string.required": "Password cannot be empty",
+      "any.required": "Password cannot be empty",
     }),
   });
 
   // Validating schema for the input fields
-  const result = schema.validate(req.body);
+  const result = await schema.validate(req.body);
   if (result.error) {
     res.status(400).send({ errorMessage: result.error.details[0].message });
     return;
@@ -108,15 +109,15 @@ router.post("/login", async (req, res) => {
       .messages({
         "string.email": "Must be a valid email.",
         "string.empty": "Email cannot be empty.",
-        "string.required": "Email is required.",
+        "any.required": "Email is required.",
       }),
     password: Joi.string().required().messages({
       "string.empty": "Password is required.",
-      "string.required": "Password cannot be empty",
+      "any.required": "Password cannot be empty",
     }),
   });
   // Validate the input fields
-  const result = schema.validate(req.body);
+  const result = await schema.validate(req.body);
   if (result.error) {
     res.status(400).send({ errorMessage: result.error.details[0].message });
     return;
@@ -151,4 +152,119 @@ router.post("/login", async (req, res) => {
     });
 });
 
+// Get profile page
+router.get(
+  "/profile",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    models.users.findOne({ where: { id: req.user.id } }).then(async (user) => {
+      const currency = await models.currencies.findOne({
+        where: { id: user.currencyId },
+      });
+      res.status(200).send({
+        email: user.email,
+        name: user.name,
+        timezone: user.timezone,
+        language: user.language,
+        number: user.number,
+        currency: {
+          id: currency.id,
+          name: currency.name,
+          symbol: currency.symbol,
+        },
+      });
+    });
+  }
+);
+
+// put profile page
+router.put(
+  "/profile",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    // Creating a schema for validatio of input fields
+    const schema = Joi.object({
+      email: Joi.string()
+        .email({
+          minDomainSegments: 2,
+          tlds: { allow: ["com", "net"] },
+        })
+        .required()
+        .messages({
+          "string.email": "Must be a valid email.",
+          "string.empty": "Email cannot be empty.",
+          "any.required": "Email is required.",
+        }),
+      name: Joi.string().alphanum().min(1).max(64).required().messages({
+        "any.required": "Name is required",
+        "string.empty": "Name cannot be empty.",
+      }),
+      timezone: Joi.string().min(1).max(64).required().messages({
+        "any.required": "Enter a timezone",
+      }),
+      language: Joi.string().min(1).max(64).required().messages({
+        "any.required": "Enter a language",
+      }),
+      currencyId: Joi.number().positive().integer().required().messages({
+        "any.required": "Enter a valid currency",
+      }),
+      number: Joi.string().min(10).max(10).messages({
+        "string.max": "Enter a valid number",
+        "string.min": "Enter a valid number",
+      }),
+    });
+    // Validate the input fields
+    const result = await schema.validate(req.body);
+    if (result.error) {
+      res.status(400).send({ errorMessage: result.error.details[0].message });
+      return;
+    }
+    // Update user profile
+    models.users
+      .findOne({ where: { id: req.user.id } })
+      .then((user) =>
+        user
+          .update({
+            language: req.body.language,
+            email: req.body.email.toLowerCase(),
+            number: req.body.number,
+            timezone: req.body.timezone,
+            currencyId: req.body.currencyId,
+          })
+          .then(async (updatedUser) => {
+            const currency = await models.currencies.findOne({
+              where: { id: updatedUser.currencyId },
+            });
+            res.status(200).send({
+              language: updatedUser.language,
+              email: updatedUser.email.toLowerCase(),
+              number: updatedUser.number,
+              timezone: updatedUser.timezone,
+              currency: {
+                id: currency.id,
+                symbol: currency.symbol,
+                name: currency.name,
+              },
+            });
+          })
+          .catch((err) => {
+            if (err.name === config.errors.uniqueErrorName) {
+              res.status(400).send({
+                errorMessage:
+                  "This email is already used. Please use another email",
+              });
+            } else if (err.name === config.errors.foreignKeyError) {
+              res.status(400).send({
+                errorMessage: "Enter a valid currency",
+              });
+            } else {
+              res.status(400).send(err);
+            }
+          })
+      )
+      .catch((err) => res.status(400).send(err));
+  }
+);
 module.exports = router;

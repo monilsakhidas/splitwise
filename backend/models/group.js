@@ -14,6 +14,7 @@ module.exports = (Sequelize, db) => {
     name: {
       type: Sequelize.STRING(64),
       allowNull: false,
+      unique: true,
       validate: {
         notEmpty: true,
       },
@@ -23,6 +24,19 @@ module.exports = (Sequelize, db) => {
       type: Sequelize.STRING,
       allowNull: true,
       defaultValue: null,
+    },
+
+    groupStrength: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+      validate: {
+        isZeroOrLesser(value) {
+          if (value <= 0) {
+            throw new Error("Value should be a positive number");
+          }
+        },
+      },
     },
 
     createdAt: {
