@@ -1,7 +1,7 @@
 "use strict";
 
 // imports
-const jwt = require("jsonwebtoken");
+const numeral = require("numeral");
 const config = require("../configuration/config");
 
 module.exports = {

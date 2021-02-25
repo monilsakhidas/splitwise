@@ -158,18 +158,21 @@ router.get(
 
 // Accept an invitation
 router.post(
-  "/accept/:id",
+  "/accept",
   utils.checkIfTokenExists,
   utils.verifyToken,
   async (req, res) => {
     // contruct expected schema
-    const schema = Joi.number().positive().required().messages({
-      "any.required": "Select a valid group",
-      "number.positive": "Select a valid group",
-      "number.base": "Select a valid group",
+    const schema = Joi.object({
+      id: Joi.number().positive().required().messages({
+        "any.required": "Select a valid group",
+        "number.positive": "Select a valid group",
+        "number.base": "Select a valid group",
+        "number.integer": "Select a valid group",
+      }),
     });
     // validate schema
-    const result = await schema.validate(req.params.id);
+    const result = await schema.validate(req.body);
     if (result.error) {
       res.status(400).send({ errorMessage: result.error.details[0].message });
       return;
@@ -223,18 +226,21 @@ router.post(
 
 // Reject an invitation
 router.post(
-  "/reject/:id",
+  "/reject",
   utils.checkIfTokenExists,
   utils.verifyToken,
   async (req, res) => {
     // contruct expected schema
-    const schema = Joi.number().positive().required().messages({
-      "any.required": "Select a valid group",
-      "number.positive": "Select a valid group",
-      "number.base": "Select a valid group",
+    const schema = Joi.object({
+      id: Joi.number().positive().required().messages({
+        "any.required": "Select a valid group",
+        "number.positive": "Select a valid group",
+        "number.base": "Select a valid group",
+        "number.integer": "Select a valid group",
+      }),
     });
     // validate schema
-    const result = await schema.validate(req.params.id);
+    const result = await schema.validate(req.body);
     if (result.error) {
       res.status(400).send({ errorMessage: result.error.details[0].message });
       return;
@@ -273,6 +279,78 @@ router.post(
       .catch((err) => {
         res.status(400).send({ errorMessage: err });
       });
+  }
+);
+
+// Leave a group
+router.post(
+  "/leave",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    // contruct expected schema
+    const schema = Joi.object({
+      id: Joi.number().positive().required().messages({
+        "any.required": "Select a valid group",
+        "number.positive": "Select a valid group",
+        "number.base": "Select a valid group",
+        "number.integer": "Select a valid group",
+      }),
+    });
+    // validate schema
+    const result = await schema.validate(req.body);
+    if (result.error) {
+      res.status(400).send({ errorMessage: result.error.details[0].message });
+      return;
+    }
+    const groupMembership = await models.members.findOne({
+      where: {
+        groupId: req.body.id,
+        userId: req.user.id,
+        status: status.inviteAccepted,
+      },
+    });
+    // If not a member
+    if (!groupMembership) {
+      res.status(400).send({ errorMessage: "Select a valid group" });
+      return;
+    } else {
+      const listOfGroupBalances = await models.groupBalances.findAll({
+        where: { groupId: req.body.id, userId: req.user.id },
+      });
+      // If none exists than the user might have just joined the group and wants to leave
+      if (!listOfGroupBalances) {
+        // leave group
+        groupMembership.status = status.leftGroup;
+        await groupMembership.save();
+        await models.groups.decrement("groupStrength", {
+          where: { id: req.body.id },
+        });
+        res.status(200).send({ message: "Left group successfully." });
+        return;
+      } else {
+        const settledGroupBalances = await listOfGroupBalances.filter(
+          (groupBalance) => groupBalance.balance != 0
+        );
+        if (settledGroupBalances.length != 0) {
+          // There is something left to settle in the account
+          res.status(400).send({
+            errorMessage:
+              "Cannot leave this group until the group balances are not settled.",
+          });
+          return;
+        } else {
+          // leave the group
+          groupMembership.status = status.leftGroup;
+          await groupMembership.save();
+          await models.groups.decrement("groupStrength", {
+            where: { id: req.body.id },
+          });
+          res.status(200).send({ message: "Left group successfully." });
+          return;
+        }
+      }
+    }
   }
 );
 
@@ -351,6 +429,7 @@ router.put(
   }
 );
 
+// Add an expense
 router.post(
   "/addexpense",
   utils.checkIfTokenExists,
@@ -413,7 +492,8 @@ router.post(
       const totalMembersOfGroup = group.groupStrength;
       const partitionedAmount = req.body.amount / totalMembersOfGroup;
       // Start transaction
-      const transaction = await db.transaction({ autocommit: false });
+      // const transaction = await db.transaction({ autocommit: false });
+      const transaction = await db.transaction();
       try {
         // Record expense entry in expenses table
         const expense = await models.expenses.create(
@@ -569,6 +649,7 @@ router.post(
               include: [
                 {
                   model: models.expenses,
+                  required: true,
                   where: {
                     groupId: req.body.groupId,
                     currencyId,
@@ -576,15 +657,6 @@ router.post(
                 },
               ],
             });
-            console.log("\n\n\n");
-            console.log(groupRecentActivity);
-            console.log(
-              groupRecentActivity.groupBalance +
-                (userId !== req.user.id
-                  ? -1 * partitionedAmount
-                  : (totalMembersOfGroup - 1) * partitionedAmount)
-            );
-            console.log("\n\n\n");
             // If groupsRecentActivity did not exist! Then create it else use the previous groupBalance
             const createdGroupRecentActivity = await models.activities.create(
               {
@@ -609,7 +681,7 @@ router.post(
               { transaction }
             );
           }
-          //await transaction.commit();
+          await transaction.commit();
           res.status(200).send({ expense });
           return;
         });
@@ -623,6 +695,82 @@ router.post(
   }
 );
 
-router.get("/:id");
+// Get group details using group Id
+router.get(
+  "/:id",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    // Construct expected schema
+    const schema = Joi.number().required().positive().integer().messages({
+      "any.required": "Select a valid group",
+      "number.positive": "Select a valid group",
+      "number.base": "Select a valid group",
+      "number.integer": "Select a valid group",
+    });
+    // Validate schema
+    const result = await schema.validate(req.params.id);
+    if (result.error) {
+      res.status(400).send({ errorMessage: result.error.details[0].message });
+      return;
+    }
+    const groupMembership = await models.members.findOne({
+      where: { userId: req.user.id, status: status.inviteAccepted },
+      include: [
+        {
+          model: models.groups,
+          required: true,
+          where: { id: req.params.id },
+        },
+      ],
+    });
+
+    if (!groupMembership) {
+      // Group does not exist
+      res.status(400).send({ errorMessage: "Select a valid group." });
+    } else {
+      res.status(200).send({ group: groupMembership.group });
+    }
+  }
+);
+
+// get group balances
+// router.get(
+//   "groupbalance/:id",
+//   utils.checkIfTokenExists,
+//   utils.verifyToken,
+//   async (req, res) => {
+//     // Construct expected schema
+//     const schema = Joi.number().required().positive().integer().messages({
+//       "any.required": "Select a valid group",
+//       "number.positive": "Select a valid group",
+//       "number.base": "Select a valid group",
+//       "number.integer": "Select a valid group",
+//     });
+//     // Validate schema
+//     const result = await schema.validate(req.params.id);
+//     if (result.error) {
+//       res.status(400).send({ errorMessage: result.error.details[0].message });
+//       return;
+//     }
+//     const groupMembership = await models.members.findOne({
+//       where: { userId: req.user.id, status: status.inviteAccepted },
+//     });
+
+//     if (!groupMembership) {
+//       // Group does not exist
+//       res.status(400).send({ errorMessage: "Select a valid group." });
+//       return;
+//     } else {
+//       // Return formatted group balances
+
+//       // groupBalances even with 0 amount to settle which we
+//       // need to filter out and remove
+//       const groupBalancesList = models.groupBalances.findAll({
+//         where: { groupId: req.params.id },
+//       });
+//     }
+//   }
+// );
 
 module.exports = router;
