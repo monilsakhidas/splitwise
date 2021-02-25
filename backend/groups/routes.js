@@ -56,7 +56,7 @@ router.post(
           createdBy: req.user.id,
           name: req.body.name,
           image: req.body.image,
-          groupStrength: req.body.users.length + 1,
+          groupStrength: 1,
         },
         { transaction: transaction }
       );
@@ -117,7 +117,7 @@ router.get(
     });
     // Querying group objects from db based on the groupIds
     const groups = await models.groups.findAll({
-      attributes: ["id", "name", "createdAt", "createdby"],
+      attributes: ["id", "name", "groupStrength", "createdAt", "createdby"],
       where: {
         id: {
           [Op.in]: groupIds,
@@ -145,6 +145,7 @@ router.get(
     // Querying group objects from db based on the groupIds
     const groups = await models.groups.findAll({
       attributes: ["id", "name", "createdAt", "createdBy"],
+      order: [["createdAt", "DESC"]],
       where: {
         id: {
           [Op.in]: groupIds,
@@ -193,13 +194,23 @@ router.post(
         groupMembership.status = status.inviteAccepted;
         groupMembership
           .save()
-          .then(
+          .then(async () => {
+            // Finding the group instance whose groupStrength needs to be incremented
+            const group = await models.groups.findOne({
+              where: {
+                id: req.params.id,
+              },
+            });
+            // Incrementing group strength as the invite is accepted
+            await group.increment("groupStrength");
+            // Sending successful response
             res.status(200).send({
               groupMembershipId: groupMembership.id,
               groupId: groupMembership.groupId,
               message: "Invite accepted",
-            })
-          )
+            });
+            return;
+          })
           .catch((err) => {
             res.status(400).send({ errorMessage: err });
           });
@@ -210,7 +221,7 @@ router.post(
   }
 );
 
-// Accept an invitation
+// Reject an invitation
 router.post(
   "/reject/:id",
   utils.checkIfTokenExists,
@@ -339,4 +350,279 @@ router.put(
       });
   }
 );
+
+router.post(
+  "/addexpense",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    // Constructing a schema to validate input
+    const schema = Joi.object({
+      description: Joi.string().min(1).max(64).required().messages({
+        "string.base": "Enter a valid string as description",
+        "string.min": "Enter a valid description",
+        "string.max": "Enter a description in less than 64 characters",
+        "any.required": "Enter a description to record the expense",
+      }),
+      groupId: Joi.number().min(1).integer().required().messages({
+        "number.base": "Select a valid group for adding expense",
+        "number.min": "Select a valid group for adding expense",
+        "any.required": "Select a valid group for adding expense",
+      }),
+      amount: Joi.number().positive().required().messages({
+        "number.positive":
+          "Enter a valid positive amount to record the expense",
+        "number.base": "Enter a valid amount to record the expense",
+        "any.required": "Enter an amount",
+      }),
+    });
+    // Validating the input object
+    const result = await schema.validate(req.body);
+    if (result.error) {
+      res.status(400).send({ errorMessage: result.error.details[0].message });
+      return;
+    }
+    // Check group membership
+    const groupMembership = await models.members.findOne({
+      where: {
+        groupId: req.body.groupId,
+        userId: req.user.id,
+        status: status.inviteAccepted,
+      },
+    });
+    // If not member of the group then return
+    if (groupMembership == null) {
+      res.status(400).send({
+        errorMessage: "Enter a valid group",
+      });
+      return;
+    } else {
+      // Get currency from user
+      const user = await models.users.findOne({
+        where: {
+          id: req.user.id,
+        },
+        attributes: ["currencyId"],
+      });
+      const currencyId = user.currencyId;
+
+      // Get group instance for finding total members in the group
+      const group = await models.groups.findOne({
+        where: { id: req.body.groupId },
+      });
+      const totalMembersOfGroup = group.groupStrength;
+      const partitionedAmount = req.body.amount / totalMembersOfGroup;
+      // Start transaction
+      const transaction = await db.transaction({ autocommit: false });
+      try {
+        // Record expense entry in expenses table
+        const expense = await models.expenses.create(
+          {
+            description: req.body.description,
+            amount: req.body.amount,
+            groupId: req.body.groupId,
+            paidByUserId: req.user.id,
+            currencyId: currencyId,
+          },
+          { transaction }
+        );
+
+        // Find all members of the group except the user initiating
+        // the expense transaction
+        const groupMembershipList = await models.members.findAll({
+          where: {
+            groupId: req.body.groupId,
+            status: status.inviteAccepted,
+          },
+        });
+        const membersList = await groupMembershipList
+          .map((groupMembership) => {
+            return groupMembership.userId;
+          })
+          .filter((userId) => userId != req.user.id);
+
+        // Find or create/update group balances
+        membersList.forEach(async (userId) => {
+          const [
+            groupBalance,
+            isCreated,
+          ] = await models.groupBalances.findOrCreate({
+            where: {
+              currencyId,
+              userId,
+              groupId: req.body.groupId,
+            },
+            defaults: {
+              currencyId,
+              userId,
+              groupId: req.body.groupId,
+              balance: -1 * partitionedAmount,
+            },
+            transaction,
+          });
+          if (!isCreated) {
+            groupBalance.balance = groupBalance.balance - partitionedAmount;
+            await groupBalance.save({ transaction: transaction });
+          }
+        });
+
+        // Find or create user's group balance who financed the expense
+        const [
+          groupBalance,
+          isCreated,
+        ] = await models.groupBalances.findOrCreate({
+          where: {
+            currencyId,
+            userId: req.user.id,
+            groupId: req.body.groupId,
+          },
+          defaults: {
+            currencyId,
+            userId: req.user.id,
+            groupId: req.body.groupId,
+            balance: partitionedAmount * (totalMembersOfGroup - 1),
+          },
+          transaction,
+        });
+
+        if (!isCreated) {
+          groupBalance.balance =
+            groupBalance.balance +
+            partitionedAmount * (totalMembersOfGroup - 1);
+          await groupBalance.save({ transaction: transaction });
+        }
+
+        // Adding Debts with groupId
+        membersList.forEach(async (userId) => {
+          // Smaller userId will be userId1. The other would be userId2
+          // Amount would be positive if the person financing the expense has smaller userId.
+          const [userId1, userId2, amount] =
+            req.user.id < userId
+              ? [req.user.id, userId, partitionedAmount]
+              : [userId, req.user.id, -1 * partitionedAmount];
+
+          const [debt, isCreated] = await models.debts.findOrCreate({
+            where: {
+              userId1,
+              userId2,
+              currencyId,
+              groupId: req.body.groupId,
+            },
+            defaults: {
+              userId1,
+              userId2,
+              currencyId,
+              groupId: req.body.groupId,
+              amount,
+            },
+            transaction,
+          });
+          if (!isCreated) {
+            debt.amount = debt.amount + amount;
+            await debt.save({ transaction: transaction });
+          }
+        });
+
+        // UPDATE ACTIVITIES OF ALL USERS WITH THE PERSON WHO IS FINANCING THE TRANSACTION
+        // STEPS:
+        // 1) Find last activity to get total balance using userId and currencyId
+        // 2) if null then create and return
+        // 3) else
+        // 4) Find last group activity to get groupBalance (inner join expenseId with expenses)
+        // 5) If null then create and return
+
+        // Adding the user who is financing the expense
+        membersList.push(req.user.id);
+
+        membersList.forEach(async (userId) => {
+          // Get most recent activity
+          const recentActivity = await models.activities.findOne({
+            order: [["createdAt", "DESC"]],
+            where: {
+              currencyId,
+              userId,
+            },
+          });
+          // create recent activity
+          if (!recentActivity) {
+            const createdRecentActivity = await models.activities.create(
+              {
+                userId,
+                currencyId,
+                expenseId: expense.id,
+                totalBalance:
+                  userId !== req.user.id
+                    ? -1 * partitionedAmount
+                    : (totalMembersOfGroup - 1) * partitionedAmount,
+                groupBalance:
+                  userId !== req.user.id
+                    ? -1 * partitionedAmount
+                    : (totalMembersOfGroup - 1) * partitionedAmount,
+              },
+              { transaction }
+            );
+          } else {
+            // find last group activity
+            const groupRecentActivity = await models.activities.findOne({
+              order: [["createdAt", "DESC"]],
+              where: { userId },
+              include: [
+                {
+                  model: models.expenses,
+                  where: {
+                    groupId: req.body.groupId,
+                    currencyId,
+                  },
+                },
+              ],
+            });
+            console.log("\n\n\n");
+            console.log(groupRecentActivity);
+            console.log(
+              groupRecentActivity.groupBalance +
+                (userId !== req.user.id
+                  ? -1 * partitionedAmount
+                  : (totalMembersOfGroup - 1) * partitionedAmount)
+            );
+            console.log("\n\n\n");
+            // If groupsRecentActivity did not exist! Then create it else use the previous groupBalance
+            const createdGroupRecentActivity = await models.activities.create(
+              {
+                userId,
+                currencyId,
+                expenseId: expense.id,
+                totalBalance:
+                  userId !== req.user.id
+                    ? recentActivity.totalBalance - partitionedAmount
+                    : recentActivity.totalBalance +
+                      (totalMembersOfGroup - 1) * partitionedAmount,
+                groupBalance:
+                  groupRecentActivity == null
+                    ? userId !== req.user.id
+                      ? -1 * partitionedAmount
+                      : (totalMembersOfGroup - 1) * partitionedAmount
+                    : groupRecentActivity.groupBalance +
+                      (userId !== req.user.id
+                        ? -1 * partitionedAmount
+                        : (totalMembersOfGroup - 1) * partitionedAmount),
+              },
+              { transaction }
+            );
+          }
+          //await transaction.commit();
+          res.status(200).send({ expense });
+          return;
+        });
+      } catch (error) {
+        console.log(error);
+        await transaction.rollback();
+        res.status(400).send(error);
+        return;
+      }
+    }
+  }
+);
+
+router.get("/:id");
+
 module.exports = router;

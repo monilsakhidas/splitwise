@@ -8,7 +8,11 @@ module.exports = (Sequelize, db) => {
       allowNull: false,
       primaryKey: true,
     },
-    balance: {
+    groupBalance: {
+      type: Sequelize.DOUBLE,
+      allowNull: false,
+    },
+    totalBalance: {
       type: Sequelize.DOUBLE,
       allowNull: false,
     },

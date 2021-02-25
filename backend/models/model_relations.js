@@ -57,10 +57,10 @@ models.groupBalances.belongsTo(models.currencies, { foreignKey: "currencyId" });
 
 // Debt currency fk
 models.debts.belongsTo(models.currencies, { foreignKey: "currencyId" });
-// Debt paid by(amount) user fk
-models.debts.belongsTo(models.users, { foreignKey: "paidByUserId" });
-// Debt paid to(amount) user fk
-models.debts.belongsTo(models.users, { foreignKey: "paidToUserId" });
+// Debt paid by(amount) user fk (User with smaller ID)
+models.debts.belongsTo(models.users, { foreignKey: "userId1" });
+// Debt paid to(amount) user fk (User with bigger ID)
+models.debts.belongsTo(models.users, { foreignKey: "userId2" });
 // Debt recored in a group fk
 models.debts.belongsTo(models.groups, { foreignKey: "groupId" });
 
@@ -68,5 +68,7 @@ models.debts.belongsTo(models.groups, { foreignKey: "groupId" });
 models.activities.belongsTo(models.expenses, { foreignKey: "expenseId" });
 // Activity user fk
 models.activities.belongsTo(models.users, { foreignKey: "userId" });
+// GroupBalance currency fk
+models.activities.belongsTo(models.currencies, { foreignKey: "currencyId" });
 
 module.exports = models;
