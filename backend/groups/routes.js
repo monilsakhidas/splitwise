@@ -181,7 +181,7 @@ router.post(
     models.members
       .findOne({
         where: {
-          groupId: req.params.id,
+          groupId: req.body.id,
           userId: req.user.id,
           status: status.inviteSent,
         },
@@ -201,7 +201,7 @@ router.post(
             // Finding the group instance whose groupStrength needs to be incremented
             const group = await models.groups.findOne({
               where: {
-                id: req.params.id,
+                id: req.body.id,
               },
             });
             // Incrementing group strength as the invite is accepted
@@ -249,7 +249,7 @@ router.post(
     models.members
       .findOne({
         where: {
-          groupId: req.params.id,
+          groupId: req.body.id,
           userId: req.user.id,
           status: status.inviteSent,
         },
@@ -681,8 +681,17 @@ router.post(
               { transaction }
             );
           }
+          const response = {
+            id: expense.id,
+            description: expense.description,
+            amount: expense.amount,
+            groupId: expense.groupId,
+            paidbyUserId: expense.paidByUserId,
+            currencyId: expense.currencyId,
+            message: "Transaction recorded successfully.",
+          };
           await transaction.commit();
-          res.status(200).send({ expense });
+          res.status(200).send({ expense: response });
           return;
         });
       } catch (error) {
@@ -735,42 +744,83 @@ router.get(
 );
 
 // get group balances
-// router.get(
-//   "groupbalance/:id",
-//   utils.checkIfTokenExists,
-//   utils.verifyToken,
-//   async (req, res) => {
-//     // Construct expected schema
-//     const schema = Joi.number().required().positive().integer().messages({
-//       "any.required": "Select a valid group",
-//       "number.positive": "Select a valid group",
-//       "number.base": "Select a valid group",
-//       "number.integer": "Select a valid group",
-//     });
-//     // Validate schema
-//     const result = await schema.validate(req.params.id);
-//     if (result.error) {
-//       res.status(400).send({ errorMessage: result.error.details[0].message });
-//       return;
-//     }
-//     const groupMembership = await models.members.findOne({
-//       where: { userId: req.user.id, status: status.inviteAccepted },
-//     });
+router.get(
+  "/groupbalance/:id",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    // Construct expected schema
+    const schema = Joi.number().required().positive().integer().messages({
+      "any.required": "Select a valid group",
+      "number.positive": "Select a valid group",
+      "number.base": "Select a valid group",
+      "number.integer": "Select a valid group",
+    });
+    // Validate schema
+    const result = await schema.validate(req.params.id);
+    if (result.error) {
+      res.status(400).send({ errorMessage: result.error.details[0].message });
+      return;
+    }
+    const groupMembership = await models.members.findOne({
+      where: {
+        userId: req.user.id,
+        status: status.inviteAccepted,
+        groupId: req.params.id,
+      },
+    });
+    if (!groupMembership) {
+      // Group does not exist
+      res.status(400).send({ errorMessage: "Select a valid group." });
+      return;
+    } else {
+      // Return formatted group balances
 
-//     if (!groupMembership) {
-//       // Group does not exist
-//       res.status(400).send({ errorMessage: "Select a valid group." });
-//       return;
-//     } else {
-//       // Return formatted group balances
+      // groupBalances even with 0 amount to settle which we
+      // need to filter out and remove
+      const groupBalancesList = models.groupBalances.findAll({
+        where: { groupId: req.params.id },
+      });
 
-//       // groupBalances even with 0 amount to settle which we
-//       // need to filter out and remove
-//       const groupBalancesList = models.groupBalances.findAll({
-//         where: { groupId: req.params.id },
-//       });
-//     }
-//   }
-// );
+      // Initialize an empty array
+      const groupBalances = [];
+
+      // Raw group balance objects fetched from the database
+      const rawGroupBalances = await models.groupBalances.findAll({
+        where: {
+          groupId: req.params.id,
+          balance: {
+            [Op.ne]: 0,
+          },
+        },
+        include: [
+          {
+            model: models.users,
+            required: true,
+            attributes: ["id", "name", "image"],
+          },
+          {
+            model: models.currencies,
+            required: true,
+            attributes: ["id", "symbol"],
+          },
+        ],
+      });
+      // Add all the groupBalances with statements in the final array which we return
+      await rawGroupBalances.forEach((groupBalance) => {
+        groupBalances.push({
+          name: groupBalance.user.name,
+          userId: groupBalance.user.id,
+          groupStatement: utils.getGroupBalanceStatement(
+            groupBalance.balance,
+            groupBalance.currency.symbol
+          ),
+          image: groupBalance.user.image,
+        });
+      });
+      res.status(200).send({ groupBalances });
+    }
+  }
+);
 
 module.exports = router;

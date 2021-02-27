@@ -8,6 +8,9 @@ const config = require("../configuration/config");
 const utils = require("../helpers/utils");
 const jwt = require("jsonwebtoken");
 const Joi = require("joi");
+const db = require("../database_scripts/database");
+const _ = require("lodash");
+const { Op } = require("sequelize");
 const router = express.Router();
 
 // signup route
@@ -265,6 +268,371 @@ router.put(
           })
       )
       .catch((err) => res.status(400).send(err));
+  }
+);
+
+router.get(
+  "/totalbalance",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    const rawTotalBalances = await models.groupBalances.findAll({
+      attributes: [
+        "userId",
+        "groupId",
+        "currencyId",
+        [db.fn("sum", db.col("balance")), "finalBalance"],
+      ],
+      where: {
+        userId: req.user.id,
+      },
+      group: ["userId", "groupId", "currencyId"],
+      include: [
+        {
+          model: models.currencies,
+          required: true,
+          attributes: ["id", "symbol"],
+        },
+      ],
+    });
+    const totalBalances = await rawTotalBalances
+      .filter((rawTotalBalance) => rawTotalBalance.finalBalance != 0)
+      .map((rawTotalBalance) => {
+        return {
+          balance: rawTotalBalance.dataValues.finalBalance,
+          symbol: rawTotalBalance.currency.symbol,
+        };
+      });
+    res.status(200).send({ totalBalances });
+  }
+);
+
+router.get(
+  "/debts",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    const youAreOwed = {};
+    const youOwe = {};
+
+    const rawDebts1 = await models.debts.findAll({
+      where: {
+        userId1: req.user.id,
+        amount: {
+          [Op.ne]: 0,
+        },
+      },
+      include: [
+        {
+          model: models.currencies,
+          required: true,
+          attributes: ["id", "symbol"],
+        },
+        {
+          model: models.users,
+          required: true,
+          attributes: ["id", "name"],
+          on: {
+            col1: db.where(db.col("user.id"), "=", db.col("userId2")),
+          },
+        },
+        {
+          model: models.groups,
+          required: true,
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+
+    const rawDebts2 = await models.debts.findAll({
+      where: {
+        userId2: req.user.id,
+        amount: {
+          [Op.ne]: 0,
+        },
+      },
+      include: [
+        {
+          model: models.currencies,
+          required: true,
+          attributes: ["id", "symbol"],
+        },
+        {
+          model: models.users,
+          required: true,
+          attributes: ["id", "name"],
+          on: {
+            col1: db.where(db.col("user.id"), "=", db.col("userId1")),
+          },
+        },
+        {
+          model: models.groups,
+          required: true,
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+
+    // Calculation for Raw debts 1 ------------------------------------------------------
+
+    // Group by userId
+    const debtsGroupedByUserId1 = _.chain(rawDebts1)
+      .groupBy((rawDebt) => {
+        return rawDebt.userId2;
+      })
+      .value();
+
+    for (let userId in debtsGroupedByUserId1) {
+      const debtsGroupedByUserIdByCurrencyId = _.chain(
+        debtsGroupedByUserId1[userId]
+      )
+        .groupBy((debtGroupedByUserId) => {
+          return debtGroupedByUserId.currencyId;
+        })
+        .value();
+
+      // Initializing the entry for each user
+      if (!youAreOwed[userId]) youAreOwed[userId] = {};
+      if (!youAreOwed[userId]["statements"])
+        youAreOwed[userId]["statements"] = [];
+      if (!youAreOwed[userId]["amount"]) youAreOwed[userId]["amount"] = {};
+      if (!youAreOwed[userId]["name"])
+        youAreOwed[userId]["name"] =
+          debtsGroupedByUserId1[userId][0]["user"]["name"];
+
+      if (!youOwe[userId]) youOwe[userId] = {};
+      if (!youOwe[userId]["statements"]) youOwe[userId]["statements"] = [];
+      if (!youOwe[userId]["amount"]) youOwe[userId]["amount"] = {};
+      if (!youOwe[userId]["name"])
+        youOwe[userId]["name"] =
+          debtsGroupedByUserId1[userId][0]["user"]["name"];
+
+      // Iterating through currencies
+
+      for (let currencyId in debtsGroupedByUserIdByCurrencyId) {
+        // Money lent to others
+        let positiveAmount = 0;
+
+        // Money lent from others
+        let negativeAmount = 0;
+
+        for (
+          let index = 0;
+          index < debtsGroupedByUserIdByCurrencyId[currencyId].length;
+          index++
+        ) {
+          // Money lent to others
+          if (debtsGroupedByUserIdByCurrencyId[currencyId][index].amount > 0) {
+            youAreOwed[userId]["statements"].push(
+              utils.getPersonalOwesYouBalanceStatement(
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].user.name,
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].currency
+                  .symbol,
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].group.name,
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].amount
+              )
+            );
+            positiveAmount =
+              positiveAmount +
+              debtsGroupedByUserIdByCurrencyId[currencyId][index].amount;
+          }
+          // Money lent from others
+          else {
+            youOwe[userId]["statements"].push(
+              utils.getPersonalOwingBalanceStatement(
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].user.name,
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].currency
+                  .symbol,
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].group.name,
+                -1 * debtsGroupedByUserIdByCurrencyId[currencyId][index].amount
+              )
+            );
+            negativeAmount =
+              negativeAmount +
+              -1 * debtsGroupedByUserIdByCurrencyId[currencyId][index].amount;
+          }
+        }
+        if (
+          positiveAmount > 0 &&
+          debtsGroupedByUserIdByCurrencyId[currencyId].length != 0
+        ) {
+          if (!youAreOwed[userId]["amount"][currencyId]) {
+            youAreOwed[userId]["amount"][currencyId] =
+              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol +
+              positiveAmount;
+          } else {
+            youAreOwed[userId]["amount"][currencyId] =
+              youAreOwed[userId]["amount"][currencyId][0] +
+              (Number(
+                youAreOwed[userId]["amount"][currencyId].slice(
+                  1,
+                  youAreOwed[userId]["amount"][currencyId].length
+                )
+              ) +
+                positiveAmount);
+          }
+        }
+        if (
+          negativeAmount > 0 &&
+          debtsGroupedByUserIdByCurrencyId[currencyId].length != 0
+        ) {
+          if (!youOwe[userId]["amount"][currencyId]) {
+            youOwe[userId]["amount"][currencyId] =
+              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol +
+              negativeAmount;
+          } else {
+            youOwe[userId]["amount"][currencyId] =
+              youOwe[userId]["amount"][currencyId][0] +
+              (Number(
+                youOwe[userId]["amount"][currencyId].slice(
+                  1,
+                  youOwe[userId]["amount"][currencyId].length
+                )
+              ) +
+                negativeAmount);
+          }
+        }
+      }
+
+      // delete unnecessary entries
+      if (youAreOwed[userId]["statements"].length == 0) {
+        delete youAreOwed[userId];
+      }
+      if (youOwe[userId]["statements"].length == 0) {
+        delete youOwe[userId];
+      }
+    }
+    // Calculation for Raw debts 2 ------------------------------------------------------
+
+    // Group by userId
+    const debtsGroupedByUserId2 = _.chain(rawDebts2)
+      .groupBy((rawDebt) => {
+        return rawDebt.userId1;
+      })
+      .value();
+
+    for (let userId in debtsGroupedByUserId2) {
+      const debtsGroupedByUserIdByCurrencyId = _.chain(
+        debtsGroupedByUserId2[userId]
+      )
+        .groupBy((debtGroupedByUserId) => {
+          return debtGroupedByUserId.currencyId;
+        })
+        .value();
+
+      // Initializing the entry for each user
+      if (!youAreOwed[userId]) youAreOwed[userId] = {};
+      if (!youAreOwed[userId]["statements"])
+        youAreOwed[userId]["statements"] = [];
+      if (!youAreOwed[userId]["amount"]) youAreOwed[userId]["amount"] = {};
+      if (!youAreOwed[userId]["name"])
+        youAreOwed[userId]["name"] =
+          debtsGroupedByUserId2[userId][0]["user"]["name"];
+      if (!youOwe[userId]) youOwe[userId] = {};
+      if (!youOwe[userId]["statements"]) youOwe[userId]["statements"] = [];
+      if (!youOwe[userId]["amount"]) youOwe[userId]["amount"] = {};
+      if (!youOwe[userId]["name"])
+        youOwe[userId]["name"] =
+          debtsGroupedByUserId2[userId][0]["user"]["name"];
+
+      // Iterating through currencies
+      for (let currencyId in debtsGroupedByUserIdByCurrencyId) {
+        // Money lent to others
+        let positiveAmount = 0;
+
+        // Money lent from others
+        let negativeAmount = 0;
+
+        for (
+          let index = 0;
+          index < debtsGroupedByUserIdByCurrencyId[currencyId].length;
+          index++
+        ) {
+          // Money lent to others
+          if (debtsGroupedByUserIdByCurrencyId[currencyId][index].amount < 0) {
+            youAreOwed[userId]["statements"].push(
+              utils.getPersonalOwesYouBalanceStatement(
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].user.name,
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].currency
+                  .symbol,
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].group.name,
+                -1 * debtsGroupedByUserIdByCurrencyId[currencyId][index].amount
+              )
+            );
+            positiveAmount =
+              positiveAmount +
+              -1 * debtsGroupedByUserIdByCurrencyId[currencyId][index].amount;
+          }
+          // Money lent from others
+          else {
+            youOwe[userId]["statements"].push(
+              utils.getPersonalOwingBalanceStatement(
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].user.name,
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].currency
+                  .symbol,
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].group.name,
+                debtsGroupedByUserIdByCurrencyId[currencyId][index].amount
+              )
+            );
+            negativeAmount =
+              negativeAmount +
+              debtsGroupedByUserIdByCurrencyId[currencyId][index].amount;
+          }
+        }
+        if (
+          positiveAmount > 0 &&
+          debtsGroupedByUserIdByCurrencyId[currencyId].length != 0
+        ) {
+          if (!youAreOwed[userId]["amount"][currencyId]) {
+            youAreOwed[userId]["amount"][currencyId] =
+              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol +
+              positiveAmount;
+          } else {
+            youAreOwed[userId]["amount"][currencyId] =
+              youAreOwed[userId]["amount"][currencyId][0] +
+              (Number(
+                youAreOwed[userId]["amount"][currencyId].slice(
+                  1,
+                  youAreOwed[userId]["amount"][currencyId].length
+                )
+              ) +
+                positiveAmount);
+          }
+        }
+        if (
+          negativeAmount > 0 &&
+          debtsGroupedByUserIdByCurrencyId[currencyId].length != 0
+        ) {
+          if (!youOwe[userId]["amount"][currencyId]) {
+            youOwe[userId]["amount"][currencyId] =
+              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol +
+              negativeAmount;
+          } else {
+            youOwe[userId]["amount"][currencyId] =
+              youOwe[userId]["amount"][currencyId][0] +
+              (Number(
+                youOwe[userId]["amount"][currencyId].slice(
+                  1,
+                  youOwe[userId]["amount"][currencyId].length
+                )
+              ) +
+                negativeAmount);
+          }
+        }
+      }
+
+      // Add name of the user
+      // youAreOwed[userId]["name"] =
+
+      // delete unnecessary entries
+      if (youAreOwed[userId]["statements"].length == 0) {
+        delete youAreOwed[userId];
+      }
+      if (youOwe[userId]["statements"].length == 0) {
+        delete youOwe[userId];
+      }
+    }
+    res.status(200).send({ youAreOwed, youOwe });
   }
 );
 module.exports = router;

@@ -11,13 +11,6 @@ module.exports = (Sequelize, db) => {
     amount: {
       type: Sequelize.DOUBLE,
       allowNull: false,
-      validate: {
-        isZeroOrLesser(value) {
-          if (value <= 0) {
-            throw new Error("Value should be a positive number");
-          }
-        },
-      },
     },
     createdAt: {
       type: Sequelize.DATE,

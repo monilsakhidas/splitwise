@@ -2,6 +2,7 @@
 
 // imports
 const numeral = require("numeral");
+const jwt = require("jsonwebtoken");
 const config = require("../configuration/config");
 
 module.exports = {
@@ -48,5 +49,45 @@ module.exports = {
     // Found an item, update it
     const item = await model.update(newItem, { where });
     return { item, created: false };
+  },
+  getGroupBalanceStatement: (amount, currencySymbol) => {
+    if (amount < 0)
+      return "owes " + currencySymbol + numeral(-1 * amount).format("0.[00]");
+    else if (amount > 0)
+      return "gets back " + currencySymbol + numeral(amount).format("0.[00]");
+    else return null;
+  },
+  getPersonalOwesYouBalanceStatement: (
+    userName,
+    currencySymbol,
+    groupName,
+    amount
+  ) => {
+    return (
+      userName +
+      " owes you " +
+      currencySymbol +
+      numeral(amount).format("0.[00]") +
+      " for " +
+      groupName +
+      "."
+    );
+  },
+  getPersonalOwingBalanceStatement: (
+    userName,
+    currencySymbol,
+    groupName,
+    amount
+  ) => {
+    return (
+      "You owe " +
+      userName +
+      " " +
+      currencySymbol +
+      numeral(amount).format("0.[00]") +
+      " for " +
+      groupName +
+      "."
+    );
   },
 };
