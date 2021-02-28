@@ -24,6 +24,13 @@ module.exports = (Sequelize, db) => {
         },
       },
     },
+    // userID to whom the money was paid when the expense is of type settle up.
+    // Else the value should be 0
+    transactionTypeId: {
+      type: Sequelize.BIGINT,
+      allowNull: false,
+      defaultValue: 0,
+    },
     createdAt: {
       type: Sequelize.DATE,
       allowNull: true,

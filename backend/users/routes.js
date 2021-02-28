@@ -12,6 +12,13 @@ const db = require("../database_scripts/database");
 const _ = require("lodash");
 const { Op } = require("sequelize");
 const router = express.Router();
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc"); // dependent on utc plugin
+const timezone = require("dayjs/plugin/timezone");
+const localizedFormat = require("dayjs/plugin/localizedFormat");
+dayjs.extend(localizedFormat);
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 // signup route
 router.post("/signup", async (req, res) => {
@@ -633,6 +640,229 @@ router.get(
       }
     }
     res.status(200).send({ youAreOwed, youOwe });
+  }
+);
+
+// Settle up API
+router.post(
+  "/settle",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    // Construct a schema
+    const schema = Joi.object({
+      id: Joi.number().positive().integer().required().messages({
+        "any.required": "Select a user to settle the balance.",
+        "number.base": "Select a valid user.",
+        "number.positive": "Select a valid user.",
+        "number.integer": "Select a valid user.",
+      }),
+    });
+    // Validate the input data
+    const result = await schema.validate(req.body);
+    if (result.error) {
+      res.status(400).send({ errorMessage: result.error.details[0].message });
+      return;
+    }
+    // userId1 is the smaller userId
+    // userId2 is the larger userId
+    const [userId1, userId2] =
+      req.user.id < req.body.id
+        ? [req.user.id, req.body.id]
+        : [req.body.id, req.user.id];
+
+    // Check if the user has any association in any group with the selected user
+    const rawUserDebts = await models.debts.findAll({
+      where: {
+        userId1,
+        userId2,
+        amount: {
+          [Op.ne]: 0,
+        },
+      },
+    });
+
+    // If rawUserDebts is empty than return with bad request
+    // as there is no asscoiation between the two users
+    if (rawUserDebts.length == 0) {
+      res.status(400).send({
+        errorMessage:
+          "Select a valid user with whom the accounts are not settled.",
+      });
+      return;
+    }
+
+    // How much debt is there between these 2 users
+    // in every group and in every currency
+    const transaction = await db.transaction();
+    try {
+      await rawUserDebts.forEach(async (rawDebt, index) => {
+        await utils.settleUpTheUsers(rawDebt, transaction);
+        if (index == rawUserDebts.length - 1) {
+          await transaction.commit();
+          res.status(200).send({
+            message: "Successfully settled up",
+          });
+          return;
+        }
+      }, transaction);
+    } catch (error) {
+      await transaction.rollback();
+      res.status(400).send({ errorMessage: error });
+      return;
+    }
+  }
+);
+
+// get Users list for settleUp API
+router.get(
+  "/settle",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    const userSet = new Set();
+    const rawUserDebts = await models.debts.findAll({
+      where: {
+        amount: {
+          [Op.ne]: 0,
+        },
+        [Op.or]: [
+          {
+            userId1: req.user.id,
+          },
+          {
+            userId2: req.user.id,
+          },
+        ],
+      },
+    });
+    await rawUserDebts.forEach(async (rawDebt, index) => {
+      userSet.add(rawDebt.userId1);
+      userSet.add(rawDebt.userId2);
+    });
+    userSet.delete(req.user.id);
+    const userList = Array.from(userSet);
+    const users = await models.users.findAll({
+      where: {
+        id: userList,
+      },
+      attributes: ["id", "name"],
+    });
+    res.status(200).send({ users });
+  }
+);
+
+// Get Recent Activity
+router.get(
+  "/activity",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    // Construct schema
+    const schema = Joi.object({
+      // 1 -> DESC, 2 -> ASC
+      orderBy: Joi.number().integer().min(1).max(2).messages({
+        "number.integer": "Select a valid sorting category",
+        "number.min": "Select a valid sorting category",
+        "number.max": "Select a valid sorting category",
+        "number.base": "Select a valid sorting category",
+      }),
+      groupId: Joi.number().integer().min(1).messages({
+        "number.base": "Select a valid group",
+        "number.integer": "Select a valid group",
+        "number.min": "Select a valid group",
+      }),
+    });
+    // Validating schema for the input fields
+    const result = await schema.validate(req.query);
+    if (result.error) {
+      res.status(400).send({ errorMessage: result.error.details[0].message });
+      return;
+    }
+    // Get all activities across all groups ordered by most recent first
+    let recentActivities = await models.activities.findAll({
+      where: {
+        userId: req.user.id,
+      },
+      order: [["createdAt", "DESC"]],
+      include: [
+        {
+          model: models.expenses,
+          attributes: [
+            "id",
+            "description",
+            "amount",
+            "paidByUserId",
+            "currencyId",
+            "transactionTypeId",
+          ],
+          required: true,
+          include: [
+            {
+              model: models.users,
+              attributes: ["id", "name"],
+              required: true,
+            },
+            {
+              model: models.currencies,
+              attributes: ["id", "symbol"],
+              required: true,
+            },
+            {
+              model: models.groups,
+              attributes: ["id", "name"],
+              required: true,
+            },
+          ],
+        },
+        {
+          model: models.users,
+          attributes: ["timezone"],
+          required: true,
+        },
+      ],
+    });
+    // If recent activities is empty
+    if (recentActivities.length == 0) {
+      res.status(200).send({ message: "No recent activity" });
+      return;
+    }
+    // Reverse list if ordering category i spresent
+    if (req.query.orderBy != null && req.query.orderBy == 2) {
+      recentActivities.reverse();
+    }
+
+    // Filter by groupId if GroupId is presen in uery params
+    if (req.query.groupId != null) {
+      recentActivities = recentActivities.filter(
+        (recentActivity) => req.query.groupId == recentActivity.expense.group.id
+      );
+      if (recentActivities.length == 0) {
+        res.status(200).send({ message: "No recent group activity" });
+        return;
+      }
+    }
+
+    const recentActivitiesResponse = [];
+    for (let index = 0; index < recentActivities.length; index++) {
+      await recentActivitiesResponse.push({
+        description: await utils.recentActivityDescriptionStatement(
+          recentActivities[index],
+          req.user.id
+        ),
+        balanceStatement: utils.recentActivityBalanceStatement(
+          recentActivities[index],
+          req.query.groupId != null
+        ),
+        time: dayjs
+          .tz(
+            recentActivities[index].createdAt,
+            recentActivities[index].user.timezone
+          )
+          .format("lll"),
+      });
+    }
+    res.status(200).send({ recentActivities: recentActivitiesResponse });
   }
 );
 module.exports = router;

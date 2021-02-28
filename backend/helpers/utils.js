@@ -4,6 +4,8 @@
 const numeral = require("numeral");
 const jwt = require("jsonwebtoken");
 const config = require("../configuration/config");
+const models = require("../models/model_relations");
+const { Op } = require("sequelize");
 
 module.exports = {
   checkIfTokenExists: (req, res, next) => {
@@ -89,5 +91,228 @@ module.exports = {
       groupName +
       "."
     );
+  },
+  settleUpTheUsers: async (rawDebt, transaction) => {
+    // find paidBy userId and paidTo userId
+    const [toBepaidByUserId, toBepaidToUserId] =
+      rawDebt.amount < 0
+        ? [rawDebt.userId1, rawDebt.userId2]
+        : [rawDebt.userId2, rawDebt.userId1];
+
+    // find amount to be paid
+    const amountToBePaid =
+      rawDebt.amount < 0 ? -1 * rawDebt.amount : rawDebt.amount;
+
+    // Add expense
+    const expense = await models.expenses.create(
+      {
+        description: "Settle balance",
+        amount: amountToBePaid,
+        groupId: rawDebt.groupId,
+        paidByUserId: toBepaidByUserId,
+        currencyId: rawDebt.currencyId,
+        transactionTypeId: toBepaidToUserId,
+      },
+      { transaction }
+    );
+
+    // Update Group Balances
+    const groupBalanceOfPayer = await models.groupBalances.findOne({
+      where: {
+        userId: toBepaidByUserId,
+        groupId: rawDebt.groupId,
+        currencyId: rawDebt.currencyId,
+      },
+    });
+    const groupBalanceOfPayee = await models.groupBalances.findOne({
+      where: {
+        userId: toBepaidToUserId,
+        groupId: rawDebt.groupId,
+        currencyId: rawDebt.currencyId,
+      },
+    });
+
+    groupBalanceOfPayer.balance = groupBalanceOfPayer.balance + amountToBePaid;
+    groupBalanceOfPayee.balance = groupBalanceOfPayee.balance - amountToBePaid;
+    await groupBalanceOfPayer.save({ transaction });
+    await groupBalanceOfPayer.save({ transaction });
+
+    // Add activities for Settling Up
+
+    // Get most recent activity of payer
+    const recentActivityOfPayer = await models.activities.findOne({
+      order: [["createdAt", "DESC"]],
+      where: {
+        currencyId: rawDebt.currencyId,
+        userId: toBepaidByUserId,
+      },
+    });
+    // Get most recent activity of Payee
+    const recentActivityOfPayee = await models.activities.findOne({
+      order: [["createdAt", "DESC"]],
+      where: {
+        currencyId: rawDebt.currencyId,
+        userId: toBepaidToUserId,
+      },
+    });
+    // Get most recent group activity of Payer
+    const recentGroupActivityOfPayer = await models.activities.findOne({
+      order: [["createdAt", "DESC"]],
+      where: {
+        currencyId: rawDebt.currencyId,
+        userId: toBepaidByUserId,
+      },
+      include: [
+        {
+          model: models.expenses,
+          attributes: ["id", "groupId"],
+          where: {
+            id: {
+              [Op.ne]: expense.id,
+            },
+            groupId: rawDebt.groupId,
+          },
+          required: true,
+        },
+      ],
+    });
+    // Get most recent group acrivity of Payee
+    const recentGroupActivityOfPayee = await models.activities.findOne({
+      order: [["createdAt", "DESC"]],
+      where: {
+        currencyId: rawDebt.currencyId,
+        userId: toBepaidToUserId,
+      },
+      include: [
+        {
+          model: models.expenses,
+          attributes: ["id", "groupId"],
+          where: {
+            id: {
+              [Op.ne]: expense.id,
+            },
+            groupId: rawDebt.groupId,
+          },
+          required: true,
+        },
+      ],
+    });
+
+    // Create new activity for payer
+    await models.activities.create(
+      {
+        userId: toBepaidByUserId,
+        currencyId: rawDebt.currencyId,
+        expenseId: expense.id,
+        totalBalance: recentActivityOfPayer.totalBalance + amountToBePaid,
+        groupBalance: recentGroupActivityOfPayer.groupBalance + amountToBePaid,
+      },
+      { transaction }
+    );
+
+    // Create new activity for payee
+    await models.activities.create(
+      {
+        userId: toBepaidToUserId,
+        currencyId: rawDebt.currencyId,
+        expenseId: expense.id,
+        totalBalance: recentActivityOfPayee.totalBalance - amountToBePaid,
+        groupBalance: recentGroupActivityOfPayee.groupBalance - amountToBePaid,
+      },
+      { transaction }
+    );
+
+    // Set debt amount to zero
+    rawDebt.amount = 0;
+    await rawDebt.save({ transaction });
+  },
+  // Get recent activity statment
+  recentActivityDescriptionStatement: async (
+    recentActivity,
+    loggedInUserId
+  ) => {
+    if (recentActivity.expense.transactionTypeId != 0) {
+      const usersSet = new Set([
+        loggedInUserId,
+        recentActivity.expense.paidByUserId,
+        recentActivity.expense.transactionTypeId,
+      ]);
+      usersSet.delete(loggedInUserId);
+      const userDetails = await models.users.findOne({
+        where: {
+          id: Array.from(usersSet),
+        },
+        attributes: ["name"],
+      });
+      return (
+        "You and " +
+        userDetails.name.charAt(0) +
+        userDetails.name.slice(1) +
+        " settled up."
+      );
+    } else if (recentActivity.expense.user.id === loggedInUserId) {
+      return (
+        "You added " +
+        '"' +
+        recentActivity.expense.description +
+        '" in ' +
+        '"' +
+        recentActivity.expense.group.name +
+        '".'
+      );
+    } else {
+      // First letter capital of the user's name who financed the expense
+      return (
+        recentActivity.expense.user.name.charAt(0).toUpperCase() +
+        recentActivity.expense.user.name.slice(1) +
+        " added " +
+        '"' +
+        recentActivity.expense.description +
+        '" in ' +
+        '"' +
+        recentActivity.expense.group.name +
+        '".'
+      );
+    }
+  },
+  // Get recent activity balance statemnet
+  recentActivityBalanceStatement: (recentActivity, isItGroupActivitiesOnly) => {
+    if (isItGroupActivitiesOnly) {
+      if (recentActivity.groupBalance > 0) {
+        return (
+          "You get back " +
+          recentActivity.expense.currency.symbol +
+          numeral(recentActivity.groupBalance).format("0.[00]") +
+          "."
+        );
+      } else if (recentActivity.groupBalance < 0) {
+        return (
+          "You owe " +
+          recentActivity.expense.currency.symbol +
+          numeral(-1 * recentActivity.groupBalance).format("0.[00]") +
+          "."
+        );
+      } else {
+        return "You accounts are settled up in this group.";
+      }
+    } else {
+      if (recentActivity.totalBalance > 0) {
+        return (
+          "You get back " +
+          recentActivity.expense.currency.symbol +
+          numeral(recentActivity.totalBalance).format("0.[00]") +
+          "."
+        );
+      } else if (recentActivity.totalBalance < 0) {
+        return (
+          "You owe " +
+          recentActivity.expense.currency.symbol +
+          numeral(-1 * recentActivity.totalBalance).format("0.[00]") +
+          "."
+        );
+      } else {
+        return "You accounts are settled up in all groups.";
+      }
+    }
   },
 };
