@@ -24,10 +24,16 @@ dayjs.extend(timezone);
 router.post("/signup", async (req, res) => {
   // Creating schema for validating input
   const schema = Joi.object({
-    name: Joi.string().alphanum().min(1).max(64).required().messages({
-      "any.required": "Name is required",
-      "string.empty": "Name cannot be empty.",
-    }),
+    name: Joi.string()
+      .required()
+      .max(64)
+      .regex(/^[a-zA-Z ]*$/)
+      .messages({
+        "any.required": "Enter a valid name.",
+        "string.empty": "Enter a valid name.",
+        "string.pattern.base": "Enter a valid name",
+        "string.max": "Length of the name should not exceed 64 characters",
+      }),
     email: Joi.string()
       .email({
         minDomainSegments: 2,
@@ -92,6 +98,7 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   // Check if already logged in
   const bearerHeader = req.headers["authorization"];
+  console.log(bearerHeader);
   if (typeof bearerHeader !== "undefined") {
     const bearerHeaderParts = bearerHeader.split(" ");
     const bearerToken = bearerHeaderParts[1];
@@ -203,22 +210,32 @@ router.put(
         })
         .required()
         .messages({
-          "string.email": "Must be a valid email.",
-          "string.empty": "Email cannot be empty.",
+          "string.email": "Enter a valid email.",
+          "string.empty": "Enter a valid email.",
           "any.required": "Email is required.",
         }),
-      name: Joi.string().alphanum().min(1).max(64).required().messages({
-        "any.required": "Name is required",
-        "string.empty": "Name cannot be empty.",
-      }),
+      name: Joi.string()
+        .required()
+        .max(64)
+        .regex(/^[a-zA-Z ]*$/)
+        .messages({
+          "any.required": "Enter a valid name.",
+          "string.empty": "Enter a valid name.",
+          "string.pattern.base": "Enter a valid name",
+          "string.max": "Length of the name should not exceed 64 characters",
+        }),
       timezone: Joi.string().min(1).max(64).required().messages({
-        "any.required": "Enter a timezone",
+        "any.required": "Enter a valid timezone",
+        "string.empty": "Enter a valid timezone",
       }),
       language: Joi.string().min(1).max(64).required().messages({
-        "any.required": "Enter a language",
+        "any.required": "Enter a valid language",
+        "string.empty": "Enter a valid language",
       }),
       currencyId: Joi.number().positive().integer().required().messages({
         "any.required": "Enter a valid currency",
+        "number.positive": "Enter a valid number",
+        "number.integer": "Enter a valid currency",
       }),
       number: Joi.string().min(10).max(10).messages({
         "string.max": "Enter a valid number",
@@ -260,10 +277,15 @@ router.put(
             });
           })
           .catch((err) => {
+            console.log(err.name);
             if (err.name === config.errors.uniqueErrorName) {
               res.status(400).send({
                 errorMessage:
                   "This email is already used. Please use another email",
+              });
+            } else if (err.name === config.errors.validationErrorName) {
+              res.status(400).send({
+                errorMessage: "Enter a valid number",
               });
             } else if (err.name === config.errors.foreignKeyError) {
               res.status(400).send({

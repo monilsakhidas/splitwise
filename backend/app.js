@@ -8,9 +8,10 @@ const user = require("./users/routes");
 const master = require("./masters/routes");
 const search = require("./search/routes");
 const group = require("./groups/routes");
+const cors = require("cors");
 
 // port number
-const PORT = 3000;
+const PORT = 3001;
 
 // app
 const app = express();
@@ -20,6 +21,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static("public"));
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 
 // routes
 app.use("/users", user);
