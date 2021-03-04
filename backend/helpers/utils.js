@@ -315,4 +315,19 @@ module.exports = {
       }
     }
   },
+  getNewGroupDataFormData: (fields, files) => {
+    return Object.assign(
+      ...Object.keys(fields).map((key) => {
+        if (fields[key].length == 1) return { [key]: fields[key][0] };
+        else if (fields[key].length >= 2 && key == "users")
+          return { [key]: fields[key].map((value) => Number(value)) };
+      }),
+      {
+        image:
+          Object.keys(files).length == 0
+            ? null
+            : files.image[0].originalFilename,
+      }
+    );
+  },
 };

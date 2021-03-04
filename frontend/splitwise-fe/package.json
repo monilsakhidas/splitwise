@@ -8,8 +8,10 @@
     "@testing-library/user-event": "^12.8.0",
     "jsonwebtoken": "^8.5.1",
     "react": "^17.0.1",
+    "react-async-select": "^0.2.6",
     "react-cookie": "^4.0.3",
     "react-dom": "^17.0.1",
+    "react-modal": "^3.12.1",
     "react-scripts": "4.0.3",
     "react-select": "^4.1.0",
     "web-vitals": "^1.1.0"

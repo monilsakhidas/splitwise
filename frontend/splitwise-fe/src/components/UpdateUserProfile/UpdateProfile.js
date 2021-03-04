@@ -21,8 +21,9 @@ class UpdateProfile extends Component {
       timezone: "",
       language: "",
       image: null,
-      error: true,
+      error: false,
       errorMessage: "",
+      wasImageUpdated: false,
     };
     // Initializing as an empty list
     this.currency = [];
@@ -105,24 +106,42 @@ class UpdateProfile extends Component {
       });
     }
   };
-  // LEFT TO DO
-  // LEFT TO DO
-  // LEFT TO DO
-  handleImageChange = () => {};
+
+  handleImageChange = (onImageChangeEvent) => {
+    this.setState({
+      wasImageUpdated: true,
+      image: onImageChangeEvent.target.files[0],
+    });
+  };
   handleOnSubmit = (submitEvent) => {
     submitEvent.preventDefault();
     if (!this.state.error) {
-      const {
-        currencyLabel,
-        tokenState,
-        error,
-        errorMessage,
-        currency,
-        ...data
-      } = this.state;
+      // construct New form data
+      let formData = new FormData();
+
+      // Append image if it was updated
+      if (this.state.wasImageUpdated) {
+        formData.append(
+          "profileImage",
+          this.state.image,
+          this.state.image.name
+        );
+      }
+
+      // Append other data
+      formData.append("language", this.state.language);
+      formData.append("email", this.state.email);
+      formData.append("timezone", this.state.timezone);
+      formData.append("number", this.state.number);
+      formData.append("currencyId", this.state.currencyId);
+      formData.append("name", this.state.name);
+
       axios
-        .put(config.BACKEND_URL + "/users/profile", data, {
-          headers: utils.getJwtHeader(cookie.load("jwtToken")),
+        .put(config.BACKEND_URL + "/users/profile", formData, {
+          headers: Object.assign(
+            utils.getJwtHeader(cookie.load("jwtToken")),
+            utils.getFormDataHeader()
+          ),
         })
         .then((res) => {
           if (res.status === 200) {
@@ -154,6 +173,8 @@ class UpdateProfile extends Component {
         .catch((error) => {
           if (error.response.status === 401) {
             return utils.getRedirectComponent("/login");
+          } else {
+            console.log(error.response);
           }
         });
     } else {
@@ -192,10 +213,14 @@ class UpdateProfile extends Component {
           "(" +
           response.data.currency.symbol +
           ")",
-        image: response.data.image,
+        image:
+          response.data.image == null
+            ? utils.getProfileImageUrl()
+            : utils.getProfileImageUrl(response.data.image),
       });
+      console.log(this.state);
     } catch (error) {
-      console.log(error.response);
+      console.log(error);
     }
   }
 
@@ -222,7 +247,7 @@ class UpdateProfile extends Component {
                 <div className="row">
                   <h2 style={{ marginLeft: "20px" }}>Account</h2>
                 </div>
-                <img src={splitwiselogo} width="200" height="200" alt="" />
+                <img src={this.state.image} width="200" height="200" alt="" />
 
                 <div className="row">
                   <p style={{ "margin-left": "20px" }}>

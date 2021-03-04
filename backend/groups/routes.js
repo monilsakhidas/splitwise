@@ -9,13 +9,63 @@ const db = require("../database_scripts/database");
 const config = require("../configuration/config");
 const { status } = require("../helpers/utils");
 const { Op } = require("sequelize");
+const multer = require("multer");
+const path = require("path");
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc"); // dependent on utc plugin
+const timezone = require("dayjs/plugin/timezone");
+const localizedFormat = require("dayjs/plugin/localizedFormat");
+dayjs.extend(localizedFormat);
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+// Init Router
 const router = express.Router();
+
+// Init storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./public/uploads/group/");
+  },
+  filename: function (req, file, cb) {
+    cb(
+      null,
+      file.fieldname +
+        "_" +
+        req.user.id +
+        "_" +
+        Date.now() +
+        path.extname(file.originalname)
+    );
+  },
+});
+
+// Check file tyopes function
+// const checkFileType = (file, callback) => {
+//   const fileTypes = /jpeg|hpg|png|gif/;
+//   const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
+//   const mimetype = fileTypes.test(file.mimetype);
+//   if (extname && mimetype) {
+//     return callback(null, true);
+//   } else {
+//     return callback("Images Only!", false);
+//   }
+// };
+
+// Middleware to upload images where the image size should be less than 5MB
+const uploadGroupImage = multer({
+  storage,
+  limits: {
+    fileSize: 1024 * 1024 * 5,
+  },
+});
 
 // Create group
 router.post(
   "/create",
   utils.checkIfTokenExists,
   utils.verifyToken,
+  uploadGroupImage.single("groupImage"),
   async (req, res) => {
     const schema = Joi.object({
       name: Joi.string().min(1).max(64).required().messages({
@@ -24,20 +74,25 @@ router.post(
         "string.max": "Name of the group should be lesser than 64 characters",
         "string.min": "Group name cannot be empty",
       }),
-      image: Joi.string(),
-      users: Joi.array()
-        .min(1)
-        .required()
-        .items(Joi.number().positive())
-        .unique()
-        .messages({
-          "any.required": "Select atleast 1 user to form a group.",
-          "array.min": "Select atleast 1 user to form a group.",
-          "number.positive": "Select a valid user.",
-          "array.unique": "Can't add the same user multiple times.",
-        }),
+      users: Joi.string().required().empty().messages({
+        "any.required": "Select atleast 1 user to form a group",
+        "string.empty": "Select atleast 1 user to form a group",
+      }),
     });
     const result = await schema.validate(req.body);
+    // Set updated image path
+    let imagePath = null;
+    if (req.file) {
+      imagePath = req.file.path.substring(req.file.path.indexOf("/") + 1);
+    }
+    // Convert the comma separated string into alist of unique users
+    try {
+      req.body.users = Array.from(
+        new Set(req.body.users.split(",").map((userId) => Number(userId)))
+      );
+    } catch (error) {
+      res.status(400).send({ errorMessage: "Select valid users" });
+    }
     if (result.error) {
       res.status(400).send({ errorMessage: result.error.details[0].message });
       return;
@@ -55,7 +110,7 @@ router.post(
         {
           createdBy: req.user.id,
           name: req.body.name,
-          image: req.body.image,
+          image: imagePath,
           groupStrength: 1,
         },
         { transaction: transaction }
@@ -117,7 +172,14 @@ router.get(
     });
     // Querying group objects from db based on the groupIds
     const groups = await models.groups.findAll({
-      attributes: ["id", "name", "groupStrength", "createdAt", "createdby"],
+      attributes: [
+        "id",
+        "name",
+        "groupStrength",
+        "createdAt",
+        "createdby",
+        "image",
+      ],
       where: {
         id: {
           [Op.in]: groupIds,
@@ -336,7 +398,7 @@ router.post(
           // There is something left to settle in the account
           res.status(400).send({
             errorMessage:
-              "Cannot leave this group until the group balances are not settled.",
+              "You cannot leave this group until the group balances are not settled.",
           });
           return;
         } else {
@@ -359,7 +421,13 @@ router.put(
   "/editgroup",
   utils.checkIfTokenExists,
   utils.verifyToken,
+  uploadGroupImage.single("groupImage"),
   async (req, res) => {
+    let imagePath = null;
+    if (req.file) {
+      imagePath = req.file.path.substring(req.file.path.indexOf("/") + 1);
+    }
+    console.log(req.body);
     // contruct expected schema
     const schema = Joi.object({
       name: Joi.string().min(1).max(64).required().messages({
@@ -368,7 +436,6 @@ router.put(
         "string.max": "Name of the group should be lesser than 64 characters",
         "string.min": "Group name cannot be empty",
       }),
-      image: Joi.string(),
       id: Joi.number().min(1).required().messages({
         "number.base": "Select a valid group",
         "any.required": "Select a valid group",
@@ -376,6 +443,7 @@ router.put(
       }),
     });
     // validate schema
+    console.log(req.body);
     const result = await schema.validate(req.body);
     if (result.error) {
       res.status(400).send({ errorMessage: result.error.details[0].message });
@@ -404,7 +472,10 @@ router.put(
             },
           });
           group.name = req.body.name;
-          group.image = req.body.image;
+          // Set image if it was updated
+          if (imagePath != null) {
+            group.image = imagePath;
+          }
           group
             .save()
             .then(async (group) => {
@@ -819,6 +890,87 @@ router.get(
         });
       });
       res.status(200).send({ groupBalances });
+    }
+  }
+);
+
+router.get(
+  "/expenses/:id",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    const schema = Joi.number().required().positive().integer().messages({
+      "any.required": "Select a valid group",
+      "number.positive": "Select a valid group",
+      "number.base": "Select a valid group",
+      "number.integer": "Select a valid group",
+    });
+    // Validate schema
+    const result = await schema.validate(req.params.id);
+    if (result.error) {
+      res.status(400).send({ errorMessage: result.error.details[0].message });
+      return;
+    }
+    const groupMembership = await models.members.findOne({
+      where: {
+        userId: req.user.id,
+        status: status.inviteAccepted,
+        groupId: req.params.id,
+      },
+    });
+    if (!groupMembership) {
+      // Group does not exist
+      res.status(400).send({ errorMessage: "Select a valid group." });
+      return;
+    } else {
+      // Get All expenses of the group
+      const rawExpenses = await models.expenses.findAll({
+        where: {
+          groupId: req.params.id,
+        },
+        order: [["createdAt", "DESC"]],
+        include: [
+          {
+            model: models.users,
+            attributes: ["id", "name"],
+            required: true,
+          },
+          {
+            model: models.currencies,
+            attributes: ["symbol"],
+            required: true,
+          },
+        ],
+      });
+      // Get logged in user
+      const user = await models.users.findOne({
+        where: {
+          id: req.user.id,
+        },
+        attributes: ["timezone"],
+      });
+      // Get logged in user's timezone
+      const timezone = user.timezone;
+      const expenses = await rawExpenses.map((expense) => {
+        return {
+          id: expense.id,
+          description: expense.description,
+          amount: expense.currency.symbol + String(expense.amount),
+          paidByUserName: expense.user.name,
+          month: dayjs
+            .tz(expense.createdAt, timezone)
+            .format("MMMM D")
+            .split(",")[0]
+            .split(" ")[0]
+            .substring(0, 3),
+          day: dayjs
+            .tz(expense.createdAt, timezone)
+            .format("MMMM D")
+            .split(",")[0]
+            .split(" ")[1],
+        };
+      });
+      res.status(200).send({ expenses });
     }
   }
 );

@@ -8,6 +8,11 @@ const utils = {
       Authorization: "Bearer " + token,
     };
   },
+  getFormDataHeader: () => {
+    return {
+      "content-type": "multipart/form-data",
+    };
+  },
   getRedirectComponent: (path) => {
     return <Redirect to={path} />;
   },
@@ -15,11 +20,16 @@ const utils = {
     if (!token) return [false, null, null];
     try {
       const data = jwt.verify(token, config.jwt.secretKey);
-      console.log(data);
       return [true, data.name, data.email];
     } catch (err) {
       return [false, null, null];
     }
+  },
+  getImageUrl: (url = "uploads/all/splitwise-logo.png") => {
+    return config.BACKEND_URL + "/" + url;
+  },
+  getProfileImageUrl: (url = "uploads/all/profile_placeholder.jpg") => {
+    return config.BACKEND_URL + "/" + url;
   },
 };
 

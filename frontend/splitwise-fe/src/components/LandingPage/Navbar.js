@@ -57,14 +57,14 @@ class Navbar extends Component {
                 <em>{name}</em>
               </a>
               <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                <a class="dropdown-item" href="/users/profile">
+                <a class="dropdown-item" href="/users/update">
                   Your Profile
                 </a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="/groups/new">
+                <a class="dropdown-item" href="/groups/create">
                   New Group
                 </a>
-                <a class="dropdown-item" href="/groups/all">
+                <a class="dropdown-item" href="/groups/mygroups">
                   Groups/Invitations
                 </a>
                 <a class="dropdown-item" href="/users/dashboard">

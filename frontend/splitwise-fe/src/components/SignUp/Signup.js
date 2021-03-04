@@ -106,6 +106,12 @@ class SignUp extends Component {
             httpOnly: false,
             maxAge: 120000,
           });
+          // save userId
+          cookie.save("id", res.data.user.id, {
+            path: "/",
+            httpOnly: false,
+            maxAge: 120000,
+          });
           this.props.history.push("/users/dashboard");
         }
       })

@@ -11,7 +11,8 @@ const Joi = require("joi");
 const db = require("../database_scripts/database");
 const _ = require("lodash");
 const { Op } = require("sequelize");
-const router = express.Router();
+const multer = require("multer");
+const path = require("path");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc"); // dependent on utc plugin
 const timezone = require("dayjs/plugin/timezone");
@@ -19,6 +20,47 @@ const localizedFormat = require("dayjs/plugin/localizedFormat");
 dayjs.extend(localizedFormat);
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
+// Initializing Router
+const router = express.Router();
+
+// Initializing storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./public/uploads/profile/");
+  },
+  filename: function (req, file, cb) {
+    cb(
+      null,
+      file.fieldname +
+        "_" +
+        req.user.id +
+        "_" +
+        Date.now() +
+        path.extname(file.originalname)
+    );
+  },
+});
+
+// Check file tyopes function
+// const checkFileType = (file, callback) => {
+//   const fileTypes = /jpeg|hpg|png|gif/;
+//   const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
+//   const mimetype = fileTypes.test(file.mimetype);
+//   if (extname && mimetype) {
+//     return callback(null, true);
+//   } else {
+//     return callback("Images Only!", false);
+//   }
+// };
+
+// Middleware to upload images where the image size should be less than 5MB
+const uploadProfileImage = multer({
+  storage,
+  limits: {
+    fileSize: 1024 * 1024 * 5,
+  },
+});
 
 // signup route
 router.post("/signup", async (req, res) => {
@@ -185,6 +227,7 @@ router.get(
         timezone: user.timezone,
         language: user.language,
         number: user.number,
+        image: user.image,
         currency: {
           id: currency.id,
           name: currency.name,
@@ -200,7 +243,9 @@ router.put(
   "/profile",
   utils.checkIfTokenExists,
   utils.verifyToken,
+  uploadProfileImage.single("profileImage"),
   async (req, res) => {
+    console.log("Inside");
     // Creating a schema for validatio of input fields
     const schema = Joi.object({
       email: Joi.string()
@@ -243,10 +288,17 @@ router.put(
       }),
     });
     // Validate the input fields
+    console.log(req.body);
     const result = await schema.validate(req.body);
     if (result.error) {
       res.status(400).send({ errorMessage: result.error.details[0].message });
       return;
+    }
+    console.log("Inside2");
+    // find Image path of the updated Image
+    let imagePath = null;
+    if (req.file) {
+      imagePath = req.file.path.substring(req.file.path.indexOf("/") + 1);
     }
     // Update user profile
     models.users
@@ -259,6 +311,7 @@ router.put(
             number: req.body.number,
             timezone: req.body.timezone,
             currencyId: req.body.currencyId,
+            image: imagePath,
           })
           .then(async (updatedUser) => {
             const currency = await models.currencies.findOne({
