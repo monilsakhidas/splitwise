@@ -185,6 +185,7 @@ router.get(
           [Op.in]: groupIds,
         },
       },
+      order: [["createdAt", "DESC"]],
     });
     res.status(200).send({ groups });
   }
@@ -508,22 +509,22 @@ router.post(
   async (req, res) => {
     // Constructing a schema to validate input
     const schema = Joi.object({
-      description: Joi.string().min(1).max(64).required().messages({
-        "string.base": "Enter a valid string as description",
-        "string.min": "Enter a valid description",
-        "string.max": "Enter a description in less than 64 characters",
-        "any.required": "Enter a description to record the expense",
+      description: Joi.string().min(1).max(64).required().empty().messages({
+        "string.base": "Enter a valid string as description.",
+        "string.min": "Enter a valid description.",
+        "string.max": "Enter a description in less than 64 characters.",
+        "any.required": "Enter a description to record the expense.",
+        "string.empty": "Enter a description to record the expense.",
       }),
       groupId: Joi.number().min(1).integer().required().messages({
-        "number.base": "Select a valid group for adding expense",
-        "number.min": "Select a valid group for adding expense",
-        "any.required": "Select a valid group for adding expense",
+        "number.base": "Select a valid group for adding expense.",
+        "number.min": "Select a valid group for adding expense.",
+        "any.required": "Select a valid group for adding expense.",
       }),
       amount: Joi.number().positive().required().messages({
-        "number.positive":
-          "Enter a valid positive amount to record the expense",
-        "number.base": "Enter a valid amount to record the expense",
-        "any.required": "Enter an amount",
+        "number.positive": "Enter a valid amount to record the expense.",
+        "number.base": "Enter a valid amount to record the expense.",
+        "any.required": "Enter an amount.",
       }),
     });
     // Validating the input object
@@ -709,6 +710,10 @@ router.post(
                   userId !== req.user.id
                     ? -1 * partitionedAmount
                     : (totalMembersOfGroup - 1) * partitionedAmount,
+                expenseBalance:
+                  userId != req.user.id
+                    ? -1 * partitionedAmount
+                    : (totalMembersOfGroup - 1) * partitionedAmount,
               },
               { transaction }
             );
@@ -748,6 +753,10 @@ router.post(
                       (userId !== req.user.id
                         ? -1 * partitionedAmount
                         : (totalMembersOfGroup - 1) * partitionedAmount),
+                expenseBalance:
+                  userId != req.user.id
+                    ? -1 * partitionedAmount
+                    : (totalMembersOfGroup - 1) * partitionedAmount,
               },
               { transaction }
             );

@@ -940,4 +940,30 @@ router.get(
     res.status(200).send({ recentActivities: recentActivitiesResponse });
   }
 );
+
+// Get logged in user's currency
+router.get(
+  "/currency",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    const user = await models.users.findOne({
+      where: {
+        id: req.user.id,
+      },
+      attributes: ["id", "currencyId"],
+      include: [
+        {
+          model: models.currencies,
+          attributes: ["id", "symbol"],
+        },
+      ],
+    });
+    res.status(200).send({
+      id: user.currency.id,
+      symbol: user.currency.symbol,
+    });
+  }
+);
+
 module.exports = router;

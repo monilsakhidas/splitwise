@@ -135,7 +135,7 @@ module.exports = {
     groupBalanceOfPayer.balance = groupBalanceOfPayer.balance + amountToBePaid;
     groupBalanceOfPayee.balance = groupBalanceOfPayee.balance - amountToBePaid;
     await groupBalanceOfPayer.save({ transaction });
-    await groupBalanceOfPayer.save({ transaction });
+    await groupBalanceOfPayee.save({ transaction });
 
     // Add activities for Settling Up
 

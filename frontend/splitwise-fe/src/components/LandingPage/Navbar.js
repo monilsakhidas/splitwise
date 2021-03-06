@@ -9,7 +9,6 @@ class Navbar extends Component {
     const [isTokenValid, name, email] = utils.isJWTValid(
       cookie.load("jwtToken")
     );
-    console.log(isTokenValid);
     if (isTokenValid) {
       return (
         <div>

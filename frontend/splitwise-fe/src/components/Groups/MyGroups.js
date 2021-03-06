@@ -46,7 +46,7 @@ class MyGroups extends Component {
     });
     const emptyInvitationsFlag = updatedInvites.length == 0 ? true : false;
     this.setState({
-      acceptedGroups: [...this.state.acceptedGroups, group],
+      acceptedGroups: [group, ...this.state.acceptedGroups],
       emptyMyGroupsFlag: false,
       invitedToGroups: updatedInvites,
       emptyInvitationsFlag,

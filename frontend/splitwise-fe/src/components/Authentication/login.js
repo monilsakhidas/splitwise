@@ -4,6 +4,8 @@ import config from "../../config/config";
 import axios from "axios";
 import cookie from "react-cookies";
 import utils from "../../utils/utils";
+import { connect } from "react-redux";
+import { login } from "../../features/userSlice";
 
 // Extends component
 class Login extends Component {
@@ -68,14 +70,24 @@ class Login extends Component {
             httpOnly: false,
             maxAge: 120000,
           });
+
+          // Redux action
+          this.props.login({
+            token: res.data.token,
+          });
+
           this.props.history.push("/users/dashboard");
         }
       })
       .catch((err) => {
-        this.setState({
-          error: true,
-          errorMessage: err.response.data.errorMessage,
-        });
+        if (err.response) {
+          this.setState({
+            error: true,
+            errorMessage: err.response.data.errorMessage,
+          });
+        } else {
+          console.log(err);
+        }
       });
   };
 
@@ -189,4 +201,14 @@ class Login extends Component {
   }
 }
 
-export default Login;
+const matchStateToProps = (state) => {
+  return {};
+};
+
+const matchDispatchToProps = (dispatch) => {
+  return {
+    login: (data) => dispatch(login(data)),
+  };
+};
+
+export default connect(matchStateToProps, matchDispatchToProps)(Login);

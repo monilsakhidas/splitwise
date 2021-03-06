@@ -4,6 +4,7 @@ import utils from "../../utils/utils";
 import Modal from "react-modal";
 import config from "../../config/config";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import EditGroup from "./EditGroup";
 
 class AcceptedGroups extends Component {
@@ -16,7 +17,6 @@ class AcceptedGroups extends Component {
         this.props.groupDetails.image == null
           ? utils.getImageUrl()
           : utils.getImageUrl(this.props.groupDetails.image),
-      tokenState: utils.isJWTValid(cookie.load("jwtToken"))[0],
       tokenState: utils.isJWTValid(cookie.load("jwtToken"))[0],
       error: false,
       errorMessage: "",
@@ -79,7 +79,11 @@ class AcceptedGroups extends Component {
             Width="89px"
             style={{ marginRight: 10 }}
           > */}
-            <button className="btn btn-warning" onClick={this.togglePopup}>
+            <button
+              className="btn btn-warning"
+              onClick={this.togglePopup}
+              style={{ marginLeft: 10 }}
+            >
               Edit Group
             </button>
           </div>
@@ -92,6 +96,26 @@ class AcceptedGroups extends Component {
           </Modal>
         </div>
       );
+
+      let groupDescriptionOption = (
+        <div>
+          <div className="profile-edit" style={{ height: "20%" }}>
+            <Link
+              className="btn btn-primary"
+              style={{ marginLeft: 10 }}
+              to={{
+                pathname: "/groups/group-description",
+                state: {
+                  groupDetails: this.state,
+                },
+              }}
+            >
+              Details
+            </Link>
+          </div>
+        </div>
+      );
+
       return (
         <div class="col-sm-12" style={{ marginBottom: "20px" }}>
           <div class="card">
@@ -106,13 +130,14 @@ class AcceptedGroups extends Component {
                 >
                   <h5 class="card-title">{this.state.name}</h5>
                   <div className="row">
-                    <button
+                    {/* <button
                       class="btn btn-primary"
                       Width="89px"
                       style={{ marginRight: 10 }}
                     >
                       Details
-                    </button>
+                    </button> */}
+                    <div>{groupDescriptionOption}</div>
                     {editOption}
                     <button
                       class="btn btn-danger"

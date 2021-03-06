@@ -10,10 +10,7 @@ class EditGroup extends Component {
     this.state = {
       id: this.props.groupDetails.id,
       name: this.props.groupDetails.name,
-      image:
-        this.props.groupDetails.image == null
-          ? utils.getImageUrl()
-          : utils.getImageUrl(this.props.groupDetails.image),
+      image: this.props.groupDetails.image,
       tokenState: utils.isJWTValid(cookie.load("jwtToken"))[0],
       error: false,
       errorMessage: "",
@@ -28,6 +25,7 @@ class EditGroup extends Component {
       wasImageUpdated: true,
       updatedProfileImage: onImageChangeEvent.target.files[0],
     });
+    console.log(this.state);
   };
 
   handleSubmit = async (onSubmitEvent) => {
@@ -55,11 +53,10 @@ class EditGroup extends Component {
           }
         );
         if (response.status === 200) {
-          // Refresh te page
+          // Refresh the page
           window.location.reload();
         }
       } catch (error) {
-        console.log(error);
         if (error.response && error.response.status === 401) {
           this.setState({
             tokenState: false,
@@ -101,6 +98,7 @@ class EditGroup extends Component {
   };
 
   render() {
+    console.log(this.props.groupDetails.image);
     if (!this.state.tokenState) {
       return utils.getRedirectComponent("/login");
     } else {

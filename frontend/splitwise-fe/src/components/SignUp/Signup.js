@@ -4,7 +4,8 @@ import { NavLink, Link } from "react-router-dom";
 import config from "../../config/config";
 import utils from "../../utils/utils";
 import cookie from "react-cookies";
-
+import { connect } from "react-redux";
+import { login } from "../../features/userSlice";
 class SignUp extends Component {
   constructor(props) {
     super(props);
@@ -112,6 +113,12 @@ class SignUp extends Component {
             httpOnly: false,
             maxAge: 120000,
           });
+
+          // Redux action
+          this.props.login({
+            token: res.data.token,
+          });
+
           this.props.history.push("/users/dashboard");
         }
       })
@@ -208,4 +215,14 @@ class SignUp extends Component {
   }
 }
 
-export default SignUp;
+const matchStateToProps = (state) => {
+  return {};
+};
+
+const matchDispatchToProps = (dispatch) => {
+  return {
+    login: (data) => dispatch(login(data)),
+  };
+};
+
+export default connect(matchStateToProps, matchDispatchToProps)(SignUp);

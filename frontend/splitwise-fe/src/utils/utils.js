@@ -26,9 +26,13 @@ const utils = {
     }
   },
   getImageUrl: (url = "uploads/all/splitwise-logo.png") => {
+    // don't mess with already converted images with proper path
+    if (url.startsWith("http")) return url;
     return config.BACKEND_URL + "/" + url;
   },
   getProfileImageUrl: (url = "uploads/all/profile_placeholder.jpg") => {
+    // don't mess with already converted images with proper path
+    if (url.startsWith("http")) return url;
     return config.BACKEND_URL + "/" + url;
   },
 };

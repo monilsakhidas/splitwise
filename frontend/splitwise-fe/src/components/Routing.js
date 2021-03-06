@@ -28,7 +28,7 @@ class Routing extends Component {
         <Route path="/groups/create" component={CreateGroup} />
         <Route path="/groups/mygroups" component={MyGroups} />
         {/* Test */}
-        <Route path="/test" component={GroupDetails} />
+        <Route path="/groups/group-description" component={GroupDetails} />
       </div>
     );
   }

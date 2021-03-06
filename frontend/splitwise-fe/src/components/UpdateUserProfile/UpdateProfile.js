@@ -185,6 +185,7 @@ class UpdateProfile extends Component {
   // Component did mount
   async componentDidMount() {
     try {
+      console.log("Inside Component did mount");
       const currencyResponse = await axios.get(
         config.BACKEND_URL + "/masters/currencies",
         {
@@ -220,7 +221,13 @@ class UpdateProfile extends Component {
       });
       console.log(this.state);
     } catch (error) {
-      console.log(error);
+      if (error.response && error.response.status === 401) {
+        this.setState({
+          tokenState: false,
+        });
+      } else {
+        console.log(error);
+      }
     }
   }
 
