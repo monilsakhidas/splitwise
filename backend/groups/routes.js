@@ -717,6 +717,7 @@ router.post(
               },
               { transaction }
             );
+            console.log(createdRecentActivity);
           } else {
             // find last group activity
             const groupRecentActivity = await models.activities.findOne({
@@ -760,6 +761,7 @@ router.post(
               },
               { transaction }
             );
+            console.log(createdGroupRecentActivity);
           }
           const response = {
             id: expense.id,

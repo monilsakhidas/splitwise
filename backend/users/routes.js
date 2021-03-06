@@ -842,6 +842,7 @@ router.get(
         "number.max": "Select a valid sorting category",
         "number.base": "Select a valid sorting category",
       }),
+      // 0 groupId means across all groups
       groupId: Joi.number().integer().min(1).messages({
         "number.base": "Select a valid group",
         "number.integer": "Select a valid group",
@@ -875,7 +876,7 @@ router.get(
           include: [
             {
               model: models.users,
-              attributes: ["id", "name"],
+              attributes: ["id", "name", "image"],
               required: true,
             },
             {
@@ -899,7 +900,9 @@ router.get(
     });
     // If recent activities is empty
     if (recentActivities.length == 0) {
-      res.status(200).send({ message: "No recent activity" });
+      res
+        .status(200)
+        .send({ message: "No recent activity", recentActivities: [] });
       return;
     }
     // Reverse list if ordering category i spresent
@@ -929,12 +932,16 @@ router.get(
           recentActivities[index],
           req.query.groupId != null
         ),
+        expenseStatement: utils.recentActivityExpenseStatement(
+          recentActivities[index]
+        ),
         time: dayjs
           .tz(
             recentActivities[index].createdAt,
             recentActivities[index].user.timezone
           )
           .format("lll"),
+        image: recentActivities[index].expense.user.image,
       });
     }
     res.status(200).send({ recentActivities: recentActivitiesResponse });

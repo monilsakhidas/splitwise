@@ -176,7 +176,7 @@ module.exports = {
         },
       ],
     });
-    // Get most recent group acrivity of Payee
+    // Get most recent group activity of Payee
     const recentGroupActivityOfPayee = await models.activities.findOne({
       order: [["createdAt", "DESC"]],
       where: {
@@ -206,6 +206,7 @@ module.exports = {
         expenseId: expense.id,
         totalBalance: recentActivityOfPayer.totalBalance + amountToBePaid,
         groupBalance: recentGroupActivityOfPayer.groupBalance + amountToBePaid,
+        expenseBalance: 0,
       },
       { transaction }
     );
@@ -218,6 +219,7 @@ module.exports = {
         expenseId: expense.id,
         totalBalance: recentActivityOfPayee.totalBalance - amountToBePaid,
         groupBalance: recentGroupActivityOfPayee.groupBalance - amountToBePaid,
+        expenseBalance: 0,
       },
       { transaction }
     );
@@ -280,14 +282,14 @@ module.exports = {
     if (isItGroupActivitiesOnly) {
       if (recentActivity.groupBalance > 0) {
         return (
-          "You get back " +
+          "In this group, you get back " +
           recentActivity.expense.currency.symbol +
           numeral(recentActivity.groupBalance).format("0.[00]") +
           "."
         );
       } else if (recentActivity.groupBalance < 0) {
         return (
-          "You owe " +
+          "In this group, you owe " +
           recentActivity.expense.currency.symbol +
           numeral(-1 * recentActivity.groupBalance).format("0.[00]") +
           "."
@@ -298,14 +300,14 @@ module.exports = {
     } else {
       if (recentActivity.totalBalance > 0) {
         return (
-          "You get back " +
+          "Across all the groups, you get back " +
           recentActivity.expense.currency.symbol +
           numeral(recentActivity.totalBalance).format("0.[00]") +
           "."
         );
       } else if (recentActivity.totalBalance < 0) {
         return (
-          "You owe " +
+          "Across all the groups, you owe " +
           recentActivity.expense.currency.symbol +
           numeral(-1 * recentActivity.totalBalance).format("0.[00]") +
           "."
@@ -329,5 +331,22 @@ module.exports = {
             : files.image[0].originalFilename,
       }
     );
+  },
+  recentActivityExpenseStatement: (recentActivity) => {
+    if (recentActivity.expenseBalance > 0) {
+      return (
+        "For this expense, you get back " +
+        recentActivity.expense.currency.symbol +
+        recentActivity.expenseBalance +
+        "."
+      );
+    } else if (recentActivity.expenseBalance < 0) {
+      return (
+        "For this expense, you owe " +
+        recentActivity.expense.currency.symbol +
+        -1 * recentActivity.expenseBalance +
+        "."
+      );
+    }
   },
 };
