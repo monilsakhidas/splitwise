@@ -11,6 +11,7 @@ const { status } = require("../helpers/utils");
 const { Op } = require("sequelize");
 const multer = require("multer");
 const path = require("path");
+const _ = require("lodash");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc"); // dependent on utc plugin
 const timezone = require("dayjs/plugin/timezone");
@@ -943,7 +944,7 @@ router.get(
         include: [
           {
             model: models.users,
-            attributes: ["id", "name"],
+            attributes: ["id", "name", "image", "timezone", "id"],
             required: true,
           },
           {
@@ -953,36 +954,131 @@ router.get(
           },
         ],
       });
-      // Get logged in user
-      const user = await models.users.findOne({
-        where: {
-          id: req.user.id,
-        },
-        attributes: ["timezone"],
-      });
-      // Get logged in user's timezone
-      const timezone = user.timezone;
       const expenses = await rawExpenses.map((expense) => {
         return {
           id: expense.id,
           description: expense.description,
-          amount: expense.currency.symbol + String(expense.amount),
+          amount: utils.getFormattedAmountWithCurrency(
+            expense.currency.symbol,
+            String(expense.amount)
+          ),
           paidByUserName: expense.user.name,
-          month: dayjs
-            .tz(expense.createdAt, timezone)
-            .format("MMMM D")
-            .split(",")[0]
-            .split(" ")[0]
-            .substring(0, 3),
-          day: dayjs
-            .tz(expense.createdAt, timezone)
-            .format("MMMM D")
-            .split(",")[0]
-            .split(" ")[1],
+          image: expense.user.image,
+          userId: expense.user.id,
+          time: dayjs
+            .tz(expense.createdAt, expense.user.timezone)
+            .format("lll"),
         };
       });
       res.status(200).send({ expenses });
     }
+  }
+);
+
+router.get(
+  "/debts/:id",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    // Construct expected schema
+    const schema = Joi.number().required().positive().integer().messages({
+      "any.required": "Select a valid group",
+      "number.positive": "Select a valid group",
+      "number.base": "Select a valid group",
+      "number.integer": "Select a valid group",
+    });
+    // Validate schema
+    const result = await schema.validate(req.params.id);
+    if (result.error) {
+      res.status(400).send({ errorMessage: result.error.details[0].message });
+      return;
+    }
+    const groupMembership = await models.members.findOne({
+      where: {
+        userId: req.user.id,
+        status: status.inviteAccepted,
+        groupId: req.params.id,
+      },
+    });
+    if (!groupMembership) {
+      // Group does not exist
+      res.status(400).send({ errorMessage: "Select a valid group." });
+      return;
+    }
+
+    // Get all information about the users of the group
+    let usersInfo = await models.members.findAll({
+      where: {
+        groupId: req.params.id,
+      },
+      include: [
+        {
+          model: models.users,
+          required: true,
+          attributes: ["id", "name", "image"],
+        },
+      ],
+      attributes: [],
+    });
+
+    usersInfo = usersInfo.map((userInfo) => {
+      return userInfo.user;
+    });
+
+    // Group users info by their Id
+    usersInfo = _.chain(usersInfo)
+      .groupBy((user) => user.id)
+      .value();
+    // Get raw debts
+    const rawDebts = await models.debts.findAll({
+      where: {
+        amount: {
+          [Op.ne]: 0,
+        },
+      },
+      include: [
+        {
+          model: models.groups,
+          required: true,
+          attributes: ["id"],
+          where: {
+            id: req.params.id,
+          },
+        },
+        {
+          model: models.currencies,
+          required: true,
+          attributes: ["id", "symbol"],
+        },
+      ],
+    });
+
+    const loans = rawDebts.map((debt) => {
+      // console.log(usersInfo);
+      if (debt.amount > 0) {
+        return {
+          loaneeName: usersInfo[debt.userId2][0].name,
+          loaneeImage: usersInfo[debt.userId2][0].image,
+          loanerName: usersInfo[debt.userId1][0].name,
+          amount: utils.getFormattedAmountWithCurrency(
+            debt.currency.symbol,
+            debt.amount
+          ),
+        };
+      } else {
+        return {
+          loaneeName: usersInfo[debt.userId1][0].name,
+          loaneeImage: usersInfo[debt.userId1][0].image,
+          loanerName: usersInfo[debt.userId2][0].name,
+          amount: utils.getFormattedAmountWithCurrency(
+            debt.currency.symbol,
+            -debt.amount
+          ),
+        };
+      }
+    });
+
+    res.status(200).send({ loans });
   }
 );
 

@@ -50,7 +50,6 @@ class UpdateProfile extends Component {
   };
 
   handleTimezoneChange = (timezoneChangeEvent) => {
-    //console.log(timezoneChangeEvent);
     this.setState({
       timezone: timezoneChangeEvent.value,
     });
@@ -58,7 +57,7 @@ class UpdateProfile extends Component {
 
   handleCurrencyChange = (currencyChangeEvent) => {
     this.setState({
-      currency: currencyChangeEvent.value,
+      currencyId: currencyChangeEvent.value,
     });
   };
 
@@ -185,7 +184,6 @@ class UpdateProfile extends Component {
   // Component did mount
   async componentDidMount() {
     try {
-      console.log("Inside Component did mount");
       const currencyResponse = await axios.get(
         config.BACKEND_URL + "/masters/currencies",
         {
@@ -219,7 +217,6 @@ class UpdateProfile extends Component {
             ? utils.getProfileImageUrl()
             : utils.getProfileImageUrl(response.data.image),
       });
-      console.log(this.state);
     } catch (error) {
       if (error.response && error.response.status === 401) {
         this.setState({

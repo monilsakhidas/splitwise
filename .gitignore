@@ -103,5 +103,10 @@ dist
 # TernJS port file
 .tern-port
 
+# Images
+*.jpeg
+*.png
+*.jpg
+
 .DS_Store
 .history

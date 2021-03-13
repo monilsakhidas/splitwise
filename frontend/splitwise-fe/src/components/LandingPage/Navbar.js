@@ -66,6 +66,9 @@ class Navbar extends Component {
                 <a class="dropdown-item" href="/groups/mygroups">
                   Groups/Invitations
                 </a>
+                <a class="dropdown-item" href="/users/activity">
+                  Recent Activity
+                </a>
                 <a class="dropdown-item" href="/users/dashboard">
                   Dashboard
                 </a>

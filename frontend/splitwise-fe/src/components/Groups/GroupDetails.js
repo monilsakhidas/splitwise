@@ -22,14 +22,20 @@ const customStyles = {
 class GroupDetails extends Component {
   constructor(props) {
     super(props);
+    const [tokenState, _, __, loggedInUserId] = utils.isJWTValid(
+      cookie.load("jwtToken")
+    );
+    console.log();
     if (this.props.location.state) {
       this.state = {
-        tokenState: utils.isJWTValid(cookie.load("jwtToken"))[0],
+        tokenState,
+        loggedInUserId,
         id: this.props.location.state.groupDetails.id,
         name: this.props.location.state.groupDetails.name,
         groupBalances: [],
         groupExpenses: [],
         image: this.props.location.state.groupDetails.image,
+        loans: [],
         isPopUpOpen: false,
         outOfState: false,
       };
@@ -57,10 +63,17 @@ class GroupDetails extends Component {
         config.BACKEND_URL + "/groups/expenses/" + this.state.id,
         { headers: utils.getJwtHeader(cookie.load("jwtToken")) }
       );
+      // group debts api
+      const groupDebtsResponse = await axios.get(
+        config.BACKEND_URL + "/groups/debts/" + this.state.id,
+        { headers: utils.getJwtHeader(cookie.load("jwtToken")) }
+      );
+
       // set group balances in state
       this.setState({
         groupBalances: groupBalanceResponse.data.groupBalances,
         groupExpenses: groupExpenseResponse.data.expenses,
+        loans: groupDebtsResponse.data.loans,
       });
     } catch (error) {
       if (error.response && error.response.status === 401) {
@@ -81,6 +94,57 @@ class GroupDetails extends Component {
     } else {
       let groupBalances = null;
       let groupExpenses = null;
+      let groupDebts = null;
+      if (this.state.loans.length != 0) {
+        groupDebts = this.state.loans.map((loan) => {
+          return (
+            <div>
+              <div class="card-content">
+                <div class="card-body cleartfix">
+                  <div class="media align-items-stretch">
+                    <div class="row">
+                      <div class="col-sm-4">
+                        <img
+                          height="100px"
+                          width="100px"
+                          style={{ borderRadius: "200px" }}
+                          src={
+                            loan.loaneeImage == null
+                              ? utils.getProfileImageUrl()
+                              : utils.getProfileImageUrl(loan.loaneeImage)
+                          }
+                        />
+                      </div>
+                      <div class="col-sm-8">
+                        <div style={{ marginLeft: "20px", marginTop: "10px" }}>
+                          <h5>{loan.loaneeName}</h5>
+                          <span
+                            style={{
+                              color: "orange",
+                            }}
+                          >
+                            owes&nbsp;
+                            <b style={{ color: "black" }}>{loan.loanerName}</b>
+                            &nbsp;
+                            {loan.amount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        });
+      } else {
+        groupDebts = (
+          <div style={{ margin: "210px" }}>
+            <h4 style={{ font: "Bookman" }}>All Accounts settled!</h4>
+          </div>
+        );
+      }
+      console.log(groupDebts);
       if (this.state.groupBalances.length != 0) {
         groupBalances = this.state.groupBalances.map((userBalance) => {
           return (
@@ -104,7 +168,15 @@ class GroupDetails extends Component {
                       <div class="col-sm-8">
                         <div style={{ marginLeft: "20px", marginTop: "10px" }}>
                           <h5>{userBalance.name}</h5>
-                          <span>{userBalance.groupStatement}</span>
+                          <span
+                            style={{
+                              color: userBalance.groupStatement.includes("get")
+                                ? "#20BF9F"
+                                : "orange",
+                            }}
+                          >
+                            {userBalance.groupStatement}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -125,56 +197,61 @@ class GroupDetails extends Component {
         groupExpenses = this.state.groupExpenses.map((expense) => {
           return (
             <div
-              class="card-content"
+              className="row"
               style={{
-                marginLeft: "0px",
-                marginTop: "1px",
+                borderBottom: "1px solid #ddd",
+                borderRight: "1px solid #ddd",
+                borderLeft: "1px solid #ddd",
               }}
             >
-              <div
-                class="card-body cleartfix"
-                style={{ textAlign: "center", marginTop: "2px" }}
-              >
+              <div className="card" style={{ borderWidth: "0px" }}>
                 <div
-                  class="media align-items-stretch"
-                  style={{ textAlign: "center", marginTop: "2px" }}
+                  class="card-horizontal"
+                  style={{ display: "flex", flex: "1 1 auto", width: "400px" }}
                 >
-                  <div
-                    class="row"
-                    style={{
-                      textAlign: "center",
-                      marginTop: "2px",
-                      marginLeft: "200px",
-                    }}
-                  >
-                    <div class="col-2" style={{ width: "600px" }}>
-                      <div style={{ textAlign: "left", marginLeft: "-24px" }}>
-                        {expense.month.toUpperCase()}
-                      </div>
-                      <div style={{ textAlign: "left", marginLeft: "-10px" }}>
-                        {expense.day}
-                      </div>
-                    </div>
-                    <div
-                      class="col-5"
+                  <div className="img-square-wrapper">
+                    <img
+                      height="100px"
+                      width="100px"
                       style={{
-                        textAlign: "left",
-                        marginTop: "2px",
-                        marginLeft: "0px",
+                        borderRadius: "200px",
+                        marginTop: "12px",
+                        marginLeft: "16px",
                       }}
+                      src={
+                        expense.image == null
+                          ? utils.getProfileImageUrl()
+                          : utils.getProfileImageUrl(expense.image)
+                      }
+                    />
+                  </div>
+                  <div class="card-body">
+                    <h4
+                      class="card-title"
+                      style={{ width: "600px", fontSize: "25px" }}
                     >
                       {expense.description}
-                    </div>
-                    <div
-                      class="col-5"
-                      style={{
-                        textAlign: "right",
-                        marginLeft: "0px",
-                        marginTop: "2px",
-                      }}
-                    >
-                      {expense.paidByUserName + " paid " + expense.amount}
-                    </div>
+                    </h4>
+                    <p class="card-text">
+                      <div
+                        style={{
+                          color:
+                            expense.userId !== this.state.loggedInUserId
+                              ? "orange"
+                              : "#20BF9F",
+                          width: "600px",
+                          fontSize: "20px",
+                        }}
+                      >
+                        {expense.userId != this.state.loggedInUserId
+                          ? expense.paidByUserName + " paid " + expense.amount
+                          : "You paid " + expense.amount}
+                        <br />
+                      </div>
+                      <div>
+                        <small class="text-muted">{expense.time}</small>
+                      </div>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -189,72 +266,134 @@ class GroupDetails extends Component {
         );
       }
 
+      // return (
+      //   <div>
+      //     <div
+      //       className="row"
+      //       style={{
+      //         marginLeft: "200px",
+      //         height: "10vh",
+      //         backgroundColor: "whitesmoke",
+      //       }}
+      //     >
+      //       <div class="col-3">
+      //         <img
+      //           height="50px"
+      //           width="50px"
+      //           style={{
+      //             borderRadius: "50px",
+      //             marginTop: "10px",
+      //           }}
+      //           src={this.state.image}
+      //         />
+      //       </div>
+      //       <div
+      //         class="col-3"
+      //         style={{
+      //           fontSize: "27px",
+      //         }}
+      //       >
+      //         <div style={{ marginTop: "15px" }}>{this.state.name}</div>
+      //       </div>
+      //       <div class="col-2">
+      //         <button
+      //           className="btn large btn orange"
+      //           style={{
+      //             marginBottom: "-50px",
+      //             marginLeft: "50px",
+      //             backgroundColor: "#FF652F",
+      //             color: "white",
+      //           }}
+      //           onClick={this.togglePopUp}
+      //         >
+      //           Add Expense
+      //         </button>
+      //         <div style={{ height: "100px" }}>
+      //           <Modal
+      //             style={customStyles}
+      //             isOpen={this.state.isPopUpOpen}
+      //             ariaHideApp={false}
+      //           >
+      //             <AddExpense
+      //               groupDetails={this.state}
+      //               closePopUp={this.togglePopUp}
+      //             />
+      //           </Modal>
+      //         </div>
+      //       </div>
+      //       <div class="col-3" style={{ backgroundColor: "white" }}>
+      //         {groupBalances}
+      //       </div>
+      //       <div class="col-1" style={{ backgroundColor: "white" }}></div>
+      //     </div>
+      //     <div
+      //       class="col-1"
+      //       style={{ textAlign: "center", backgroundColor: "white" }}
+      //     ></div>
+      //     <div class="col-8" style={{ textAlign: "center", marginTop: "2px" }}>
+      //       {groupExpenses}
+      //     </div>
+      //   </div>
+      // );
       return (
         <div>
-          <div
-            className="row"
-            style={{
-              marginLeft: "200px",
-              height: "10vh",
-              backgroundColor: "whitesmoke",
-            }}
-          >
-            <div class="col-1">
-              <img
-                height="50px"
-                width="50px"
-                style={{
-                  borderRadius: "50px",
-                  marginTop: "10px",
-                }}
-                src={this.state.image}
-              />
-            </div>
-            <div
-              class="col-4"
-              style={{
-                fontSize: "27px",
-              }}
-            >
-              <div style={{ marginTop: "15px" }}>{this.state.name}</div>
-            </div>
-            <div class="col-2">
-              <button
-                className="btn large btn orange"
-                style={{
-                  marginBottom: "-50px",
-                  marginLeft: "50px",
-                  backgroundColor: "#FF652F",
-                  color: "white",
-                }}
-                onClick={this.togglePopUp}
+          <div className="row">
+            <div className="col-3">{groupDebts}</div>
+            <div className="col-6">
+              <div
+                className="row"
+                style={{ backgroundColor: "whitesmoke", height: "70px" }}
               >
-                Add Expense
-              </button>
-              <div style={{ height: "100px" }}>
-                <Modal
-                  style={customStyles}
-                  isOpen={this.state.isPopUpOpen}
-                  ariaHideApp={false}
-                >
-                  <AddExpense
-                    groupDetails={this.state}
-                    closePopUp={this.togglePopUp}
+                <div class="col-1">
+                  <img
+                    height="50px"
+                    width="50px"
+                    style={{
+                      borderRadius: "50px",
+                      marginTop: "10px",
+                    }}
+                    src={this.state.image}
                   />
-                </Modal>
+                </div>
+                <div
+                  class="col-8"
+                  style={{
+                    fontSize: "27px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ marginTop: "15px" }}>{this.state.name}</div>
+                </div>
+                <div class="col-3">
+                  <button
+                    className="btn large btn orange"
+                    style={{
+                      marginBottom: "-42px",
+                      marginLeft: "30px",
+                      backgroundColor: "#FF652F",
+                      color: "white",
+                    }}
+                    onClick={this.togglePopUp}
+                  >
+                    Add Expense
+                  </button>
+                  <div style={{ height: "100px" }}>
+                    <Modal
+                      style={customStyles}
+                      isOpen={this.state.isPopUpOpen}
+                      ariaHideApp={false}
+                    >
+                      <AddExpense
+                        groupDetails={this.state}
+                        closePopUp={this.togglePopUp}
+                      />
+                    </Modal>
+                  </div>
+                </div>
               </div>
+              {groupExpenses}
             </div>
-            <div class="col-4" style={{ backgroundColor: "white" }}>
-              {groupBalances}
-            </div>
-            <div class="col-1" style={{ backgroundColor: "white" }}></div>
-          </div>
-          <div
-            class="col-1"
-            style={{ textAlign: "center", backgroundColor: "white" }}
-          ></div>
-          <div class="col-7" style={{ textAlign: "center", marginTop: "2px" }}>
-            {groupExpenses}
+            <div className="col-3">{groupBalances}</div>
           </div>
         </div>
       );

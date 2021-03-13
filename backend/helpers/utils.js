@@ -71,7 +71,9 @@ module.exports = {
       currencySymbol +
       numeral(amount).format("0.[00]") +
       " for " +
+      '"' +
       groupName +
+      '"' +
       "."
     );
   },
@@ -88,7 +90,9 @@ module.exports = {
       currencySymbol +
       numeral(amount).format("0.[00]") +
       " for " +
+      '"' +
       groupName +
+      '"' +
       "."
     );
   },
@@ -295,7 +299,11 @@ module.exports = {
           "."
         );
       } else {
-        return "You accounts are settled up in this group.";
+        return (
+          "Your account is settled up in this group for all transactions in " +
+          recentActivity.expense.currency.name +
+          "."
+        );
       }
     } else {
       if (recentActivity.totalBalance > 0) {
@@ -313,7 +321,11 @@ module.exports = {
           "."
         );
       } else {
-        return "You accounts are settled up in all groups.";
+        return (
+          "Your account is settled up in this group for all transactions in " +
+          recentActivity.expense.currency.name +
+          "."
+        );
       }
     }
   },
@@ -348,5 +360,40 @@ module.exports = {
         "."
       );
     }
+  },
+  // User for dashboard amount api
+  getFormattedAmount: (amountList) => {
+    if (amountList.length == 1) {
+      return amountList[0];
+    } else if (amountList.length >= 2) {
+      const commaSeperatedAmountList = amountList.join(", ");
+      const lastCommaIndex = commaSeperatedAmountList.lastIndexOf(",");
+      const finalAmountString =
+        amountList.join().slice(0, lastCommaIndex) +
+        " and" +
+        commaSeperatedAmountList.slice(
+          lastCommaIndex + 1,
+          commaSeperatedAmountList.length + 1
+        );
+      return finalAmountString;
+    }
+  },
+  // Used for dashboard amount api
+  getAmountWithSymbolFromMap: (map) => {
+    const amounts = [];
+    Object.keys(map).forEach((key) => {
+      if (map[key].amount >= 0)
+        amounts.push(
+          map[key].symbol + numeral(map[key].amount).format("0.[00]")
+        );
+      else
+        amounts.push(
+          "-" + map[key].symbol + numeral(-map[key].amount).format("0.[00]")
+        );
+    });
+    return amounts;
+  },
+  getFormattedAmountWithCurrency: (symbol, amount) => {
+    return symbol + numeral(amount).format("0.[00]");
   },
 };

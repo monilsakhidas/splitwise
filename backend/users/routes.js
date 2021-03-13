@@ -389,6 +389,7 @@ router.get(
   }
 );
 
+// Calculating the debts
 router.get(
   "/debts",
   utils.checkIfTokenExists,
@@ -397,7 +398,34 @@ router.get(
     const youAreOwed = {};
     const youOwe = {};
 
-    const rawDebts1 = await models.debts.findAll({
+    // if (req.query.id) {
+    //   const schema = Joi.number().required().positive().integer().messages({
+    //     "any.required": "Select a valid group",
+    //     "number.positive": "Select a valid group",
+    //     "number.base": "Select a valid group",
+    //     "number.integer": "Select a valid group",
+    //   });
+    //   // Validate schema
+    //   const result = await schema.validate(req.query.id);
+    //   if (result.error) {
+    //     res.status(400).send({ errorMessage: result.error.details[0].message });
+    //     return;
+    //   }
+    //   const groupMembership = await models.members.findOne({
+    //     where: {
+    //       userId: req.user.id,
+    //       status: utils.status.inviteAccepted,
+    //       groupId: req.query.id,
+    //     },
+    //   });
+    //   if (!groupMembership) {
+    //     // Group does not exist
+    //     res.status(400).send({ errorMessage: "Select a valid group." });
+    //     return;
+    //   }
+    // }
+
+    let rawDebts1 = await models.debts.findAll({
       where: {
         userId1: req.user.id,
         amount: {
@@ -413,7 +441,7 @@ router.get(
         {
           model: models.users,
           required: true,
-          attributes: ["id", "name"],
+          attributes: ["id", "name", "image"],
           on: {
             col1: db.where(db.col("user.id"), "=", db.col("userId2")),
           },
@@ -426,7 +454,7 @@ router.get(
       ],
     });
 
-    const rawDebts2 = await models.debts.findAll({
+    let rawDebts2 = await models.debts.findAll({
       where: {
         userId2: req.user.id,
         amount: {
@@ -442,7 +470,7 @@ router.get(
         {
           model: models.users,
           required: true,
-          attributes: ["id", "name"],
+          attributes: ["id", "name", "image"],
           on: {
             col1: db.where(db.col("user.id"), "=", db.col("userId1")),
           },
@@ -454,6 +482,16 @@ router.get(
         },
       ],
     });
+
+    // // If groupId is given
+    // if (req.query.id) {
+    //   rawDebts1 = rawDebts1.filter(
+    //     (rawDebt) => rawDebt.group.id == req.query.id
+    //   );
+    //   rawDebts2 = rawDebts2.filter(
+    //     (rawDebt) => rawDebt.group.id == req.query.id
+    //   );
+    // }
 
     // Calculation for Raw debts 1 ------------------------------------------------------
 
@@ -481,6 +519,9 @@ router.get(
       if (!youAreOwed[userId]["name"])
         youAreOwed[userId]["name"] =
           debtsGroupedByUserId1[userId][0]["user"]["name"];
+      if (!youAreOwed[userId]["image"])
+        youAreOwed[userId]["image"] =
+          debtsGroupedByUserId1[userId][0]["user"]["image"];
 
       if (!youOwe[userId]) youOwe[userId] = {};
       if (!youOwe[userId]["statements"]) youOwe[userId]["statements"] = [];
@@ -488,6 +529,9 @@ router.get(
       if (!youOwe[userId]["name"])
         youOwe[userId]["name"] =
           debtsGroupedByUserId1[userId][0]["user"]["name"];
+      if (!youOwe[userId]["image"])
+        youOwe[userId]["image"] =
+          debtsGroupedByUserId1[userId][0]["user"]["image"];
 
       // Iterating through currencies
 
@@ -539,19 +583,24 @@ router.get(
           debtsGroupedByUserIdByCurrencyId[currencyId].length != 0
         ) {
           if (!youAreOwed[userId]["amount"][currencyId]) {
-            youAreOwed[userId]["amount"][currencyId] =
-              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol +
-              positiveAmount;
+            youAreOwed[userId]["amount"][
+              currencyId
+            ] = utils.getFormattedAmountWithCurrency(
+              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol,
+              positiveAmount
+            );
           } else {
-            youAreOwed[userId]["amount"][currencyId] =
-              youAreOwed[userId]["amount"][currencyId][0] +
-              (Number(
+            youAreOwed[userId]["amount"][
+              currencyId
+            ] = utils.getFormattedAmountWithCurrency(
+              youAreOwed[userId]["amount"][currencyId][0],
+              Number(
                 youAreOwed[userId]["amount"][currencyId].slice(
                   1,
                   youAreOwed[userId]["amount"][currencyId].length
                 )
-              ) +
-                positiveAmount);
+              ) + positiveAmount
+            );
           }
         }
         if (
@@ -559,19 +608,24 @@ router.get(
           debtsGroupedByUserIdByCurrencyId[currencyId].length != 0
         ) {
           if (!youOwe[userId]["amount"][currencyId]) {
-            youOwe[userId]["amount"][currencyId] =
-              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol +
-              negativeAmount;
+            youOwe[userId]["amount"][
+              currencyId
+            ] = utils.getFormattedAmountWithCurrency(
+              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol,
+              negativeAmount
+            );
           } else {
-            youOwe[userId]["amount"][currencyId] =
-              youOwe[userId]["amount"][currencyId][0] +
-              (Number(
+            youOwe[userId]["amount"][
+              currencyId
+            ] = utils.getFormattedAmountWithCurrency(
+              youOwe[userId]["amount"][currencyId][0],
+              Number(
                 youOwe[userId]["amount"][currencyId].slice(
                   1,
                   youOwe[userId]["amount"][currencyId].length
                 )
-              ) +
-                negativeAmount);
+              ) + negativeAmount
+            );
           }
         }
       }
@@ -610,12 +664,18 @@ router.get(
       if (!youAreOwed[userId]["name"])
         youAreOwed[userId]["name"] =
           debtsGroupedByUserId2[userId][0]["user"]["name"];
+      if (!youAreOwed[userId]["image"])
+        youAreOwed[userId]["image"] =
+          debtsGroupedByUserId2[userId][0]["user"]["image"];
       if (!youOwe[userId]) youOwe[userId] = {};
       if (!youOwe[userId]["statements"]) youOwe[userId]["statements"] = [];
       if (!youOwe[userId]["amount"]) youOwe[userId]["amount"] = {};
       if (!youOwe[userId]["name"])
         youOwe[userId]["name"] =
           debtsGroupedByUserId2[userId][0]["user"]["name"];
+      if (!youOwe[userId]["image"])
+        youOwe[userId]["image"] =
+          debtsGroupedByUserId2[userId][0]["user"]["image"];
 
       // Iterating through currencies
       for (let currencyId in debtsGroupedByUserIdByCurrencyId) {
@@ -666,19 +726,24 @@ router.get(
           debtsGroupedByUserIdByCurrencyId[currencyId].length != 0
         ) {
           if (!youAreOwed[userId]["amount"][currencyId]) {
-            youAreOwed[userId]["amount"][currencyId] =
-              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol +
-              positiveAmount;
+            youAreOwed[userId]["amount"][
+              currencyId
+            ] = utils.getFormattedAmountWithCurrency(
+              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol,
+              positiveAmount
+            );
           } else {
-            youAreOwed[userId]["amount"][currencyId] =
-              youAreOwed[userId]["amount"][currencyId][0] +
-              (Number(
+            youAreOwed[userId]["amount"][
+              currencyId
+            ] = utils.getFormattedAmountWithCurrency(
+              youAreOwed[userId]["amount"][currencyId][0],
+              Number(
                 youAreOwed[userId]["amount"][currencyId].slice(
                   1,
                   youAreOwed[userId]["amount"][currencyId].length
                 )
-              ) +
-                positiveAmount);
+              ) + positiveAmount
+            );
           }
         }
         if (
@@ -686,19 +751,24 @@ router.get(
           debtsGroupedByUserIdByCurrencyId[currencyId].length != 0
         ) {
           if (!youOwe[userId]["amount"][currencyId]) {
-            youOwe[userId]["amount"][currencyId] =
-              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol +
-              negativeAmount;
+            youOwe[userId]["amount"][
+              currencyId
+            ] = utils.getFormattedAmountWithCurrency(
+              debtsGroupedByUserIdByCurrencyId[currencyId][0].currency.symbol,
+              negativeAmount
+            );
           } else {
-            youOwe[userId]["amount"][currencyId] =
-              youOwe[userId]["amount"][currencyId][0] +
-              (Number(
+            youOwe[userId]["amount"][
+              currencyId
+            ] = utils.getFormattedAmountWithCurrency(
+              youOwe[userId]["amount"][currencyId][0],
+              Number(
                 youOwe[userId]["amount"][currencyId].slice(
                   1,
                   youOwe[userId]["amount"][currencyId].length
                 )
-              ) +
-                negativeAmount);
+              ) + negativeAmount
+            );
           }
         }
       }
@@ -821,7 +891,7 @@ router.get(
       where: {
         id: userList,
       },
-      attributes: ["id", "name"],
+      attributes: ["id", "name", "email"],
     });
     res.status(200).send({ users });
   }
@@ -881,7 +951,7 @@ router.get(
             },
             {
               model: models.currencies,
-              attributes: ["id", "symbol"],
+              attributes: ["id", "symbol", "name"],
               required: true,
             },
             {
@@ -969,6 +1039,172 @@ router.get(
     res.status(200).send({
       id: user.currency.id,
       symbol: user.currency.symbol,
+    });
+  }
+);
+
+// Get all balances for dashboard
+router.get(
+  "/balance",
+  utils.checkIfTokenExists,
+  utils.verifyToken,
+  async (req, res) => {
+    const rawUserDebts = await models.debts.findAll({
+      where: {
+        amount: {
+          [Op.ne]: 0,
+        },
+        [Op.or]: [
+          {
+            userId1: req.user.id,
+          },
+          {
+            userId2: req.user.id,
+          },
+        ],
+      },
+      include: [
+        {
+          model: models.currencies,
+          attributes: ["id", "symbol"],
+        },
+      ],
+    });
+
+    const youGetAmount = {};
+    const youOweAmount = {};
+    const totalAmount = {};
+    await rawUserDebts.forEach((rawDebt) => {
+      if (rawDebt.userId1 == req.user.id) {
+        // You have to pay
+        if (rawDebt.amount < 0) {
+          // If entry exists
+          if (youOweAmount[rawDebt.currency.id]) {
+            youOweAmount[rawDebt.currency.id]["amount"] =
+              youOweAmount[rawDebt.currency.id]["amount"] - rawDebt.amount;
+            totalAmount[rawDebt.currency.id]["amount"] =
+              totalAmount[rawDebt.currency.id]["amount"] + rawDebt.amount;
+          }
+          // If entry does not exist
+          else {
+            // Check If total amount does not exist for this currency
+            if (totalAmount[rawDebt.currency.id]) {
+              totalAmount[rawDebt.currency.id]["amount"] =
+                totalAmount[rawDebt.currency.id]["amount"] + rawDebt.amount;
+            }
+            // If total amount entry does not exist
+            else {
+              totalAmount[rawDebt.currency.id] = {};
+              totalAmount[rawDebt.currency.id]["symbol"] =
+                rawDebt.currency.symbol;
+              totalAmount[rawDebt.currency.id]["amount"] = rawDebt.amount;
+            }
+            youOweAmount[rawDebt.currency.id] = {};
+            youOweAmount[rawDebt.currency.id]["amount"] = -rawDebt.amount;
+            youOweAmount[rawDebt.currency.id]["symbol"] =
+              rawDebt.currency.symbol;
+          }
+        }
+        // You get
+        else if (rawDebt.amount > 0) {
+          // If entry exists
+          if (youGetAmount[rawDebt.currency.id]) {
+            youGetAmount[rawDebt.currency.id]["amount"] =
+              youGetAmount[rawDebt.currency.id]["amount"] + rawDebt.amount;
+            totalAmount[rawDebt.currency.id]["amount"] =
+              totalAmount[rawDebt.currency.id]["amount"] + rawDebt.amount;
+          }
+          // If entry does not exist
+          else {
+            youGetAmount[rawDebt.currency.id] = {};
+            youGetAmount[rawDebt.currency.id]["amount"] = rawDebt.amount;
+            youGetAmount[rawDebt.currency.id]["symbol"] =
+              rawDebt.currency.symbol;
+            // Check If total amount does not exist for this currency
+            if (totalAmount[rawDebt.currency.id]) {
+              totalAmount[rawDebt.currency.id]["amount"] =
+                totalAmount[rawDebt.currency.id]["amount"] + rawDebt.amount;
+            }
+            // If total amount entry does not exist
+            else {
+              totalAmount[rawDebt.currency.id] = {};
+              totalAmount[rawDebt.currency.id]["symbol"] =
+                rawDebt.currency.symbol;
+              totalAmount[rawDebt.currency.id]["amount"] = rawDebt.amount;
+            }
+          }
+        }
+      } else if (rawDebt.userId2 == req.user.id) {
+        // You get
+        if (rawDebt.amount < 0) {
+          // If entry exists
+          if (youGetAmount[rawDebt.currency.id]) {
+            youGetAmount[rawDebt.currency.id]["amount"] =
+              youGetAmount[rawDebt.currency.id]["amount"] - rawDebt.amount;
+            totalAmount[rawDebt.currency.id]["amount"] =
+              totalAmount[rawDebt.currency.id]["amount"] - rawDebt.amount;
+          }
+          // If entry does not exist
+          else {
+            youGetAmount[rawDebt.currency.id] = {};
+            youGetAmount[rawDebt.currency.id]["amount"] = -rawDebt.amount;
+            youGetAmount[rawDebt.currency.id]["symbol"] =
+              rawDebt.currency.symbol;
+            // Check If total amount does not exist for this currency
+            if (totalAmount[rawDebt.currency.id]) {
+              totalAmount[rawDebt.currency.id]["amount"] =
+                totalAmount[rawDebt.currency.id]["amount"] - rawDebt.amount;
+            }
+            // If total amount entry does not exist
+            else {
+              totalAmount[rawDebt.currency.id] = {};
+              totalAmount[rawDebt.currency.id]["symbol"] =
+                rawDebt.currency.symbol;
+              totalAmount[rawDebt.currency.id]["amount"] = -rawDebt.amount;
+            }
+          }
+        }
+        // You have to pay
+        else if (rawDebt.amount > 0) {
+          // If entry exists
+          if (youOweAmount[rawDebt.currency.id]) {
+            youOweAmount[rawDebt.currency.id]["amount"] =
+              youOweAmount[rawDebt.currency.id]["amount"] + rawDebt.amount;
+            totalAmount[rawDebt.currency.id]["amount"] =
+              totalAmount[rawDebt.currency.id]["amount"] - rawDebt.amount;
+          }
+          // If entry does not exist
+          else {
+            youOweAmount[rawDebt.currency.id] = {};
+            youOweAmount[rawDebt.currency.id]["amount"] = rawDebt.amount;
+            youOweAmount[rawDebt.currency.id]["symbol"] =
+              rawDebt.currency.symbol;
+            // Check If total amount does not exist for this currency
+            if (totalAmount[rawDebt.currency.id]) {
+              totalAmount[rawDebt.currency.id]["amount"] =
+                totalAmount[rawDebt.currency.id]["amount"] - rawDebt.amount;
+            }
+            // If total amount entry does not exist
+            else {
+              totalAmount[rawDebt.currency.id] = {};
+              totalAmount[rawDebt.currency.id]["symbol"] =
+                rawDebt.currency.symbol;
+              totalAmount[rawDebt.currency.id]["amount"] = -rawDebt.amount;
+            }
+          }
+        }
+      }
+    });
+    res.status(200).send({
+      owe: utils.getFormattedAmount(
+        utils.getAmountWithSymbolFromMap(youOweAmount)
+      ),
+      get: utils.getFormattedAmount(
+        utils.getAmountWithSymbolFromMap(youGetAmount)
+      ),
+      total: utils.getFormattedAmount(
+        utils.getAmountWithSymbolFromMap(totalAmount)
+      ),
     });
   }
 );
