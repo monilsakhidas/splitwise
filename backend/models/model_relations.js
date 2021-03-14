@@ -25,17 +25,6 @@ models.users.belongsTo(models.currencies, {
 // Group user fk
 models.groups.belongsTo(models.users, { foreignKey: "createdBy" });
 
-// // Transaction group fk
-// models.transactions.belongsTo(models.groups, { foreignKey: "groupId" });
-// // Transaction user (lender) fk
-// models.transactions.belongsTo(models.users, { foreignKey: "lenderId" });
-// // Transaction user (lendee) fk
-// models.transactions.belongsTo(models.users, { foreignKey: "lendeeId" });
-// // Transaction currency fk
-// models.transactions.belongsTo(models.currencies, { foreignKey: "currencyId" });
-// // Transaction user (createdBy) fk
-// models.transactions.belongsTo(models.users, { foreignKey: "createdBy" });
-
 // Member group fk
 models.members.belongsTo(models.groups, { foreignKey: "groupId" });
 // Member user fk

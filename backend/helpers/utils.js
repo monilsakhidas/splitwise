@@ -349,14 +349,14 @@ module.exports = {
       return (
         "For this expense, you get back " +
         recentActivity.expense.currency.symbol +
-        recentActivity.expenseBalance +
+        numeral(recentActivity.expenseBalance).format("0.[00]") +
         "."
       );
     } else if (recentActivity.expenseBalance < 0) {
       return (
         "For this expense, you owe " +
         recentActivity.expense.currency.symbol +
-        -1 * recentActivity.expenseBalance +
+        numeral(-1 * recentActivity.expenseBalance).format("0.[00]") +
         "."
       );
     }

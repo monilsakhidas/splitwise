@@ -140,15 +140,29 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   // Check if already logged in
   const bearerHeader = req.headers["authorization"];
-  console.log(bearerHeader);
   if (typeof bearerHeader !== "undefined") {
     const bearerHeaderParts = bearerHeader.split(" ");
     const bearerToken = bearerHeaderParts[1];
     try {
       const decodedData = jwt.verify(bearerToken, config.jwt.secretKey);
+      const loggedInUser = await models.users.findOne({
+        where: { id: decodedData.id },
+      });
+      // Generate data that should be encoded in user's jwt
+      const updatedUnsignedJwtUserObject = {
+        id: loggedInUser.id,
+        name: loggedInUser.name,
+        email: loggedInUser.email,
+        currencyId: loggedInUser.currencyId,
+      };
+      // Generate an updated JWT token
+      const updatedJwtToken = jwt.sign(
+        updatedUnsignedJwtUserObject,
+        config.jwt.secretKey
+      );
       res.status(200).send({
-        user: decodedData,
-        token: bearerToken,
+        user: updatedUnsignedJwtUserObject,
+        token: updatedJwtToken,
         message: "Already logged in.",
       });
       return;
@@ -259,6 +273,7 @@ router.put(
           "string.empty": "Enter a valid email.",
           "any.required": "Email is required.",
         }),
+      image: Joi.string(),
       name: Joi.string()
         .required()
         .max(64)
@@ -294,11 +309,12 @@ router.put(
       res.status(400).send({ errorMessage: result.error.details[0].message });
       return;
     }
-    console.log("Inside2");
-    // find Image path of the updated Image
+    // find Image path of the updated Image. If image is not updated set it to the original image
     let imagePath = null;
     if (req.file) {
       imagePath = req.file.path.substring(req.file.path.indexOf("/") + 1);
+    } else if (req.body.image) {
+      imagePath = req.body.image;
     }
     // Update user profile
     models.users
@@ -306,6 +322,7 @@ router.put(
       .then((user) =>
         user
           .update({
+            name: req.body.name,
             language: req.body.language,
             email: req.body.email.toLowerCase(),
             number: req.body.number,
