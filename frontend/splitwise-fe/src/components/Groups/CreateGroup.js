@@ -15,8 +15,8 @@ class CreateGroup extends Component {
       error: true,
       tokenState: utils.isJWTValid(cookie.load("jwtToken"))[0],
       errorMessage: "",
-      updatedProfileImage: "",
-      updatedProfileImagePath: utils.getImageUrl,
+      updatedProfileImage: null,
+      updatedProfileImagePath: utils.getImageUrl(),
       wasImageUpdated: false,
     };
   }
@@ -94,6 +94,9 @@ class CreateGroup extends Component {
   handleImageChange = (onImageChangeEvent) => {
     this.setState({
       updatedProfileImage: onImageChangeEvent.target.files[0],
+      updatedProfileImagePath: URL.createObjectURL(
+        onImageChangeEvent.target.files[0]
+      ),
       wasImageUpdated: true,
     });
   };
@@ -144,7 +147,6 @@ class CreateGroup extends Component {
           tokenState: false,
         });
       else {
-        console.log("NOT INSIDE LOADS 401");
         console.log(error.response);
       }
     }
@@ -164,7 +166,12 @@ class CreateGroup extends Component {
           <div className="row" style={{ height: "100vh" }}>
             <div className="col-3"></div>
             <div className="col-2">
-              <img src={splitwiselogo} width="200" height="200" alt="" />
+              <img
+                src={this.state.updatedProfileImagePath}
+                width="200"
+                height="200"
+                alt=""
+              />
               <div className="row p-1 m-3">
                 <input
                   style={{ marginLeft: "20px" }}

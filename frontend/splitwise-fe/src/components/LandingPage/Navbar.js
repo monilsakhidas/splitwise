@@ -101,20 +101,26 @@ class Navbar extends Component {
             class="navbar navbar-expand-lg navbar-dark"
             style={{ backgroundColor: "#20BF9F" }}
           >
-            <a class="navbar-brand" href="">
-              <img
-                style={{ marginLeft: "170px" }}
-                src={splitwiselogo}
-                width="60"
-                height="50"
-                alt=""
-              />
-            </a>
-            <p style={{ "margin-top": "20px" }}>
+            <img
+              style={{ marginLeft: "170px" }}
+              src={splitwiselogo}
+              width="60"
+              height="50"
+              alt=""
+            />
+
+            <h2
+              style={{
+                color: "black",
+                marginTop: "5px",
+                marginLeft: "5px",
+                color: "white",
+              }}
+            >
               <strong style={{ color: "white", fontSize: 25 }}>
                 Splitwise
               </strong>
-            </p>
+            </h2>
             <button
               class="navbar-toggler"
               type="button"

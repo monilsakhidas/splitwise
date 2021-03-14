@@ -99,7 +99,6 @@ class MyGroups extends Component {
           error: true,
         });
       } else {
-        console.log("Inside Main Error");
         console.log(error);
       }
     }
@@ -126,7 +125,7 @@ class MyGroups extends Component {
       // Update cards according to flag
       if (this.state.emptyInvitationsFlag) {
         inviteCards = (
-          <div style={{ margin: "170px" }}>
+          <div style={{ marginLeft: "170px", marginTop: "281px" }}>
             <h4 style={{ font: "Bookman" }}>No Invites</h4>
           </div>
         );

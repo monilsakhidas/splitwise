@@ -106,7 +106,7 @@ class Dashboard extends Component {
         youOwe = (
           <div className="row">
             <div style={{ margin: "170px" }}>
-              <h4 style={{ font: "Bookman" }}>Yo do not owe anything</h4>
+              <h4 style={{ font: "Bookman" }}>You do not owe anything</h4>
             </div>
           </div>
         );
@@ -180,7 +180,7 @@ class Dashboard extends Component {
         youAreOwed = (
           <div className="row">
             <div style={{ margin: "170px" }}>
-              <h4 style={{ font: "Bookman" }}>Yo are not owed anything</h4>
+              <h4 style={{ font: "Bookman" }}>You are not owed anything</h4>
             </div>
           </div>
         );
@@ -275,7 +275,7 @@ class Dashboard extends Component {
                 <div className="col-md-2">
                   <div
                     className="row"
-                    style={{ paddingTop: "22px", paddingLeft: "99px" }}
+                    style={{ marginTop: "22px", marginLeft: "97px" }}
                   >
                     <button
                       className="btn large btn orange"

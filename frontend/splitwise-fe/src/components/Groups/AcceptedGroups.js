@@ -64,7 +64,7 @@ class AcceptedGroups extends Component {
       let renderError = null;
       if (this.state.error) {
         renderError = (
-          <div style={{ color: "red", display: "block" }}>
+          <div style={{ color: "red", display: "block", marginLeft: "17px" }}>
             {this.state.errorMessage}
           </div>
         );

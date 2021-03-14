@@ -23,9 +23,9 @@ class EditGroup extends Component {
   handleImageChange = (onImageChangeEvent) => {
     this.setState({
       wasImageUpdated: true,
+      image: URL.createObjectURL(onImageChangeEvent.target.files[0]),
       updatedProfileImage: onImageChangeEvent.target.files[0],
     });
-    console.log(this.state);
   };
 
   handleSubmit = async (onSubmitEvent) => {

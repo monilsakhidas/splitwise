@@ -122,7 +122,7 @@ class RecentActivity extends Component {
       return utils.getRedirectComponent("/login");
     } else {
       let activityCards = null;
-      if (this.state.activities.length == 0) {
+      if (this.state.activities == null) {
         activityCards = (
           <div style={{ marginTop: "230px", marginLeft: "370px" }}>
             <h4 style={{ font: "Bookman" }}>No recent activity</h4>
@@ -166,7 +166,11 @@ class RecentActivity extends Component {
                         style={{
                           color:
                             activity.balanceStatement.indexOf("get") == -1
-                              ? "orange"
+                              ? activity.balanceStatement.indexOf(
+                                  "transactions"
+                                ) == -1
+                                ? "orange"
+                                : "black"
                               : "#20BF9F",
                         }}
                       >

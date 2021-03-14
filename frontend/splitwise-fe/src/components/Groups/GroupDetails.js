@@ -13,7 +13,7 @@ const customStyles = {
     right: "auto",
     bottom: "auto",
     marginRight: "-50%",
-    height: "460px",
+    height: "300px",
     width: "500px",
     transform: "translate(-50%, -50%)",
   },
@@ -105,9 +105,9 @@ class GroupDetails extends Component {
                     <div class="row">
                       <div class="col-sm-4">
                         <img
-                          height="100px"
-                          width="100px"
-                          style={{ borderRadius: "200px" }}
+                          height="80px"
+                          width="80px"
+                          style={{ borderRadius: "150px" }}
                           src={
                             loan.loaneeImage == null
                               ? utils.getProfileImageUrl()
@@ -116,7 +116,12 @@ class GroupDetails extends Component {
                         />
                       </div>
                       <div class="col-sm-8">
-                        <div style={{ marginLeft: "20px", marginTop: "10px" }}>
+                        <div
+                          style={{
+                            marginLeft: "0px",
+                            marginTop: "10px",
+                          }}
+                        >
                           <h5>{loan.loaneeName}</h5>
                           <span
                             style={{
@@ -124,7 +129,9 @@ class GroupDetails extends Component {
                             }}
                           >
                             owes&nbsp;
-                            <b style={{ color: "black" }}>{loan.loanerName}</b>
+                            <h10 style={{ color: "black" }}>
+                              {loan.loanerName}
+                            </h10>
                             &nbsp;
                             {loan.amount}
                           </span>
@@ -140,7 +147,7 @@ class GroupDetails extends Component {
       } else {
         groupDebts = (
           <div style={{ margin: "210px" }}>
-            <h4 style={{ font: "Bookman" }}>All Accounts settled!</h4>
+            <h4 style={{ font: "Bookman" }}></h4>
           </div>
         );
       }
@@ -155,9 +162,9 @@ class GroupDetails extends Component {
                     <div class="row">
                       <div class="col-sm-4">
                         <img
-                          height="100px"
-                          width="100px"
-                          style={{ borderRadius: "200px" }}
+                          height="80px"
+                          width="80px"
+                          style={{ borderRadius: "150px" }}
                           src={
                             userBalance.image == null
                               ? utils.getProfileImageUrl()
@@ -166,7 +173,7 @@ class GroupDetails extends Component {
                         />
                       </div>
                       <div class="col-sm-8">
-                        <div style={{ marginLeft: "20px", marginTop: "10px" }}>
+                        <div style={{ marginLeft: "23px", marginTop: "10px" }}>
                           <h5>{userBalance.name}</h5>
                           <span
                             style={{
@@ -189,7 +196,7 @@ class GroupDetails extends Component {
       } else {
         groupBalances = (
           <div style={{ margin: "210px" }}>
-            <h4 style={{ font: "Bookman" }}>All Accounts settled!</h4>
+            <h4 style={{ font: "Bookman" }}></h4>
           </div>
         );
       }
@@ -260,7 +267,12 @@ class GroupDetails extends Component {
         });
       } else {
         groupExpenses = (
-          <div style={{ margin: "170px", textAlign: "right" }}>
+          <div
+            style={{
+              marginLeft: "220px",
+              marginTop: "270px",
+            }}
+          >
             <h4 style={{ font: "Bookman" }}>No Expenses recorded yet!</h4>
           </div>
         );
@@ -342,7 +354,13 @@ class GroupDetails extends Component {
             <div className="col-6">
               <div
                 className="row"
-                style={{ backgroundColor: "whitesmoke", height: "70px" }}
+                style={{
+                  backgroundColor: "whitesmoke",
+                  height: "70px",
+                  borderBottom: "1px solid #ddd",
+                  borderRight: "1px solid #ddd",
+                  borderLeft: "1px solid #ddd",
+                }}
               >
                 <div class="col-1">
                   <img

@@ -171,10 +171,11 @@ class AddExpense extends Component {
             </div>
             <div class="row">
               <div className="col-1"></div>
+              <div className="col-2"></div>
               {/* <div className="col-3">
                   <img src={description} width="100px" height="100px" alt="" />
                 </div> */}
-              <div className="col-11">
+              <div className="col-9">
                 <form onSubmit={this.handleSubmit} id="Login" method="POST">
                   <input
                     placeholder="Enter Description"

@@ -24,6 +24,8 @@ class UpdateProfile extends Component {
       error: false,
       errorMessage: "",
       wasImageUpdated: false,
+      rawImagePath: null,
+      imagePathForImageTag: null,
     };
     // Initializing as an empty list
     this.currency = [];
@@ -109,11 +111,15 @@ class UpdateProfile extends Component {
   handleImageChange = (onImageChangeEvent) => {
     this.setState({
       wasImageUpdated: true,
+      imagePathForImageTag: URL.createObjectURL(
+        onImageChangeEvent.target.files[0]
+      ),
       image: onImageChangeEvent.target.files[0],
     });
   };
   handleOnSubmit = (submitEvent) => {
     submitEvent.preventDefault();
+    console.log(this.state);
     if (!this.state.error) {
       // construct New form data
       let formData = new FormData();
@@ -125,6 +131,8 @@ class UpdateProfile extends Component {
           this.state.image,
           this.state.image.name
         );
+      } else {
+        formData.append("image", this.state.rawImagePath);
       }
 
       // Append other data
@@ -165,19 +173,52 @@ class UpdateProfile extends Component {
                 maxAge: 120000,
               });
             }
-            // forward to dashboard
-            this.props.history.push("/users/profile");
+            // Set new jwt token
+            axios
+              .post(
+                config.BACKEND_URL + "/users/login",
+                {},
+                { headers: utils.getJwtHeader(cookie.load("jwtToken")) }
+              )
+              .then((res) => {
+                if (res.status === 200) {
+                  // Remove outdated Jwt cookie
+                  cookie.remove("jwtToken", {
+                    path: "/",
+                  });
+                  // Insert updated Jwt cookie
+                  cookie.save("jwtToken", res.data.token, {
+                    path: "/",
+                    httpOnly: false,
+                    maxAge: 120000,
+                  });
+                  window.location.reload();
+                }
+              })
+              .catch((error) => {
+                console.log(error);
+              });
+            // forward to same page
+            //window.location.reload();
           }
         })
         .catch((error) => {
-          if (error.response.status === 401) {
+          if (error.response && error.response.status === 401) {
             return utils.getRedirectComponent("/login");
+          } else if (error.response && error.response.status === 400) {
+            this.setState({
+              error: true,
+              errorMessage: error.response.data.errorMessage,
+            });
           } else {
             console.log(error.response);
           }
         });
     } else {
-      this.setState({ errorMessage: "Enter value for all required fields" });
+      this.setState({
+        error: true,
+        errorMessage: "Enter value for all required fields",
+      });
     }
   };
 
@@ -216,6 +257,11 @@ class UpdateProfile extends Component {
           response.data.image == null
             ? utils.getProfileImageUrl()
             : utils.getProfileImageUrl(response.data.image),
+        rawImagePath: response.data.image,
+        imagePathForImageTag:
+          response.data.image == null
+            ? utils.getProfileImageUrl()
+            : utils.getProfileImageUrl(response.data.image),
       });
     } catch (error) {
       if (error.response && error.response.status === 401) {
@@ -251,7 +297,12 @@ class UpdateProfile extends Component {
                 <div className="row">
                   <h2 style={{ marginLeft: "20px" }}>Account</h2>
                 </div>
-                <img src={this.state.image} width="200" height="200" alt="" />
+                <img
+                  src={this.state.imagePathForImageTag}
+                  width="200"
+                  height="200"
+                  alt=""
+                />
 
                 <div className="row">
                   <p style={{ "margin-left": "20px" }}>
