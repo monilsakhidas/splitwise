@@ -1,6 +1,4 @@
 import React, { Component } from "react";
-import Invite from "./Invite";
-import AcceptedGroups from "./AcceptedGroups";
 import utils from "../../utils/utils";
 import config from "../../config/config";
 import cookie from "react-cookies";
@@ -75,9 +73,6 @@ class AddExpense extends Component {
         { headers: utils.getJwtHeader(cookie.load("jwtToken")) }
       );
       window.location.reload();
-      if (response.status === 200) {
-        console.log(response.data);
-      }
     } catch (error) {
       if (error.response && error.response.status === 401) {
         this.setState({

@@ -208,7 +208,7 @@ router.get(
     });
     // Querying group objects from db based on the groupIds
     const groups = await models.groups.findAll({
-      attributes: ["id", "name", "createdAt", "createdBy"],
+      attributes: ["id", "name", "createdAt", "createdBy", "image"],
       order: [["createdAt", "DESC"]],
       where: {
         id: {

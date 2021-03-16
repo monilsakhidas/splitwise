@@ -367,7 +367,9 @@ module.exports = {
       return amountList[0];
     } else if (amountList.length >= 2) {
       const commaSeperatedAmountList = amountList.join(", ");
+      //console.log(commaSeperatedAmountList);
       const lastCommaIndex = commaSeperatedAmountList.lastIndexOf(",");
+      //console.log(lastCommaIndex);
       const finalAmountString =
         amountList.join().slice(0, lastCommaIndex) +
         " and" +
@@ -375,6 +377,8 @@ module.exports = {
           lastCommaIndex + 1,
           commaSeperatedAmountList.length + 1
         );
+      //console.log(amountList.join().slice(0, lastCommaIndex));
+      //console.log(commaSeperatedAmountList[lastCommaIndex ]);
       return finalAmountString;
     }
   },

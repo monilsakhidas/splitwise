@@ -17,6 +17,8 @@ const db = new Sequelize(
     pool: {
       maxConnections: config.database.maxConnections,
       maxIdleTime: config.database.maxIdleTime,
+      max: config.database.max,
+      idle: config.database.idle,
     },
     language: config.database.language,
   }

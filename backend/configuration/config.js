@@ -14,6 +14,8 @@ config.database.maxConcurrentQueries = 100;
 config.database.dialect = "mysql";
 config.database.language = "en";
 config.database.maxConnections = 5;
+config.database.max = 5;
+config.database.idle = 10000;
 config.database.maxIdleTime = 30;
 config.database.ssl = "Amazon RDS";
 

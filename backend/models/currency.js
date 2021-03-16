@@ -19,7 +19,7 @@ module.exports = (Sequelize, db) => {
     },
 
     symbol: {
-      type: Sequelize.STRING(1),
+      type: Sequelize.STRING(4),
       allowNull: false,
       unique: true,
       validate: {

@@ -191,7 +191,9 @@ router.post("/login", async (req, res) => {
   });
   // Validate the input fields
   const result = await schema.validate(req.body);
+
   if (result.error) {
+    //console.log(result.error.details[0].message);
     res.status(400).send({ errorMessage: result.error.details[0].message });
     return;
   }
@@ -259,7 +261,6 @@ router.put(
   utils.verifyToken,
   uploadProfileImage.single("profileImage"),
   async (req, res) => {
-    console.log("Inside");
     // Creating a schema for validatio of input fields
     const schema = Joi.object({
       email: Joi.string()
@@ -303,7 +304,7 @@ router.put(
       }),
     });
     // Validate the input fields
-    console.log(req.body);
+
     const result = await schema.validate(req.body);
     if (result.error) {
       res.status(400).send({ errorMessage: result.error.details[0].message });
@@ -347,7 +348,6 @@ router.put(
             });
           })
           .catch((err) => {
-            console.log(err.name);
             if (err.name === config.errors.uniqueErrorName) {
               res.status(400).send({
                 errorMessage:
@@ -607,13 +607,16 @@ router.get(
               positiveAmount
             );
           } else {
+            // console.log("=============Inside======================");
+            // console.log(youAreOwed[userId]["amount"][currencyId][0]);
+            // console.log("=============Inside======================");
             youAreOwed[userId]["amount"][
               currencyId
             ] = utils.getFormattedAmountWithCurrency(
               youAreOwed[userId]["amount"][currencyId][0],
               Number(
                 youAreOwed[userId]["amount"][currencyId].slice(
-                  1,
+                  youAreOwed[userId]["amount"][currencyId][0].length,
                   youAreOwed[userId]["amount"][currencyId].length
                 )
               ) + positiveAmount
@@ -632,13 +635,16 @@ router.get(
               negativeAmount
             );
           } else {
+            // console.log("=============Inside======================");
+            // console.log(youOwe[userId]["amount"][currencyId][0]);
+            // console.log("=============Inside======================");
             youOwe[userId]["amount"][
               currencyId
             ] = utils.getFormattedAmountWithCurrency(
               youOwe[userId]["amount"][currencyId][0],
               Number(
                 youOwe[userId]["amount"][currencyId].slice(
-                  1,
+                  youOwe[userId]["amount"][currencyId][0].length,
                   youOwe[userId]["amount"][currencyId].length
                 )
               ) + negativeAmount
@@ -750,13 +756,16 @@ router.get(
               positiveAmount
             );
           } else {
+            // console.log("=============Inside======================");
+            // console.log(youAreOwed[userId]["amount"][currencyId][0]);
+            // console.log("=============Inside======================");
             youAreOwed[userId]["amount"][
               currencyId
             ] = utils.getFormattedAmountWithCurrency(
               youAreOwed[userId]["amount"][currencyId][0],
               Number(
                 youAreOwed[userId]["amount"][currencyId].slice(
-                  1,
+                  youAreOwed[userId]["amount"][currencyId][0].length,
                   youAreOwed[userId]["amount"][currencyId].length
                 )
               ) + positiveAmount
@@ -775,13 +784,16 @@ router.get(
               negativeAmount
             );
           } else {
+            // console.log("=============Inside======================");
+            // console.log(youOwe[userId]["amount"][currencyId][0]);
+            // console.log("=============Inside======================");
             youOwe[userId]["amount"][
               currencyId
             ] = utils.getFormattedAmountWithCurrency(
               youOwe[userId]["amount"][currencyId][0],
               Number(
                 youOwe[userId]["amount"][currencyId].slice(
-                  1,
+                  youOwe[userId]["amount"][currencyId][0].length,
                   youOwe[userId]["amount"][currencyId].length
                 )
               ) + negativeAmount
@@ -801,6 +813,7 @@ router.get(
         delete youOwe[userId];
       }
     }
+    // console.log(JSON.stringify({ youAreOwed, youOwe }));
     res.status(200).send({ youAreOwed, youOwe });
   }
 );
