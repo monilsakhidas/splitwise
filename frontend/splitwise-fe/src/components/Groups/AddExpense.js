@@ -182,8 +182,9 @@ class AddExpense extends Component {
                   ></input>
                   <div className="row">
                     <input
+                      class="input-group-prepend"
                       value={this.state.currencySymbol}
-                      size="1"
+                      size="3"
                       style={{
                         marginTop: "10px",
                         marginLeft: "13px",
@@ -192,6 +193,18 @@ class AddExpense extends Component {
                         marginBottom: "-13px",
                       }}
                     ></input>
+                    {/* <div
+                      class="input-group-prepend"
+                      style={{
+                        marginTop: "0px",
+                        marginLeft: "0px",
+                        marginRight: "0px",
+                        border: "0",
+                        marginBottom: "0px",
+                      }}
+                    >
+                      <span>{this.state.currencySymbol}</span>
+                    </div> */}
                     <input
                       placeholder="0.00"
                       type="number"
@@ -205,6 +218,7 @@ class AddExpense extends Component {
                         borderBottom: "2px dotted",
                         marginTop: "20px",
                         marginLeft: "-10px",
+                        width: "142.5px",
                       }}
                       onChange={this.handleAmountChange}
                     ></input>

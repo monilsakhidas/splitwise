@@ -514,8 +514,8 @@ router.post(
         "string.base": "Enter a valid string as description.",
         "string.min": "Enter a valid description.",
         "string.max": "Enter a description in less than 64 characters.",
-        "any.required": "Enter a description to record the expense.",
-        "string.empty": "Enter a description to record the expense.",
+        "any.required": "Enter a valid description.",
+        "string.empty": "Enter a valid description.",
       }),
       groupId: Joi.number().min(1).integer().required().messages({
         "number.base": "Select a valid group for adding expense.",
@@ -523,9 +523,9 @@ router.post(
         "any.required": "Select a valid group for adding expense.",
       }),
       amount: Joi.number().positive().required().messages({
-        "number.positive": "Enter a valid amount to record the expense.",
-        "number.base": "Enter a valid amount to record the expense.",
-        "any.required": "Enter an amount.",
+        "number.positive": "Enter a valid amount.",
+        "number.base": "Enter a valid amount.",
+        "any.required": "Enter a valid amount.",
       }),
     });
     // Validating the input object
