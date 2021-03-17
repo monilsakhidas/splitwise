@@ -13,6 +13,7 @@
     "react": "^17.0.1",
     "react-async-select": "^0.2.6",
     "react-cookie": "^4.0.3",
+    "react-cookies": "^0.1.1",
     "react-dom": "^17.0.1",
     "react-lottie": "^1.2.3",
     "react-modal": "^3.12.1",
