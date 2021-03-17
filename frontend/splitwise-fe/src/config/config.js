@@ -1,6 +1,6 @@
 const config = {
   BACKEND_URL:
-    "https://spliwise-backend.herokuapp.com" || "http://localhost:3001",
+    "http://spliwise-backend.herokuapp.com" || "http://localhost:3001",
   jwt: {
     secretKey: "secretkey",
   },
