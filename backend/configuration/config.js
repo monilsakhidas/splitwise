@@ -35,7 +35,7 @@ config.errors.foreignKeyError = "SequelizeForeignKeyConstraintError";
 config.searchLimit = 10;
 
 //Setting frontend url for cors
-config.frontendUrl = "http://localhost:3000";
+config.frontendUrl = process.env.frontendUrl || "http://localhost:3000";
 
 // exporting config file
 module.exports = config;

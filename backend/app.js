@@ -14,7 +14,7 @@ const config = require("./configuration/config");
 // const multer = require("multer");
 
 // port number
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // app
 const app = express();
