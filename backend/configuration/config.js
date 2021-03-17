@@ -35,7 +35,8 @@ config.errors.foreignKeyError = "SequelizeForeignKeyConstraintError";
 config.searchLimit = 10;
 
 //Setting frontend url for cors
-config.frontendUrl = process.env.frontendUrl || "http://localhost:3000";
+config.frontendUrl =
+  "https://splitwise-prototype.herokuapp.com" || "http://localhost:3000";
 
 // exporting config file
 module.exports = config;
