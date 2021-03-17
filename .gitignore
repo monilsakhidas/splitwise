@@ -104,9 +104,11 @@ dist
 .tern-port
 
 # Images
-*.jpeg
-*.png
-*.jpg
+# *.jpeg
+# *.png
+# *.jpg
+# group/
+# profile/
 
 .DS_Store
 .history
