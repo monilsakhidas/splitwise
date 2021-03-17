@@ -59,7 +59,6 @@ class Invite extends Component {
   displayImage = () => {};
 
   render() {
-    console.log(this.props.groupDetails);
     if (!this.state.tokenState) {
       return utils.getRedirectComponent("/login");
     } else {

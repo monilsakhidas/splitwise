@@ -429,7 +429,6 @@ router.put(
     if (req.file) {
       imagePath = req.file.path.substring(req.file.path.indexOf("/") + 1);
     }
-    console.log(req.body);
     // contruct expected schema
     const schema = Joi.object({
       name: Joi.string().min(1).max(64).required().messages({
@@ -445,7 +444,6 @@ router.put(
       }),
     });
     // validate schema
-    console.log(req.body);
     const result = await schema.validate(req.body);
     if (result.error) {
       res.status(400).send({ errorMessage: result.error.details[0].message });
@@ -718,7 +716,6 @@ router.post(
               },
               { transaction }
             );
-            console.log(createdRecentActivity);
           } else {
             // find last group activity
             const groupRecentActivity = await models.activities.findOne({
@@ -762,7 +759,6 @@ router.post(
               },
               { transaction }
             );
-            console.log(createdGroupRecentActivity);
           }
           const response = {
             id: expense.id,
@@ -1054,7 +1050,6 @@ router.get(
     });
 
     const loans = rawDebts.map((debt) => {
-      // console.log(usersInfo);
       if (debt.amount > 0) {
         return {
           loaneeName: usersInfo[debt.userId2][0].name,

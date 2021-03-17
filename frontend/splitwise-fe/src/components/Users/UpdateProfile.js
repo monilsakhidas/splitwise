@@ -119,7 +119,6 @@ class UpdateProfile extends Component {
   };
   handleOnSubmit = (submitEvent) => {
     submitEvent.preventDefault();
-    console.log(this.state);
     if (!this.state.error) {
       // construct New form data
       let formData = new FormData();

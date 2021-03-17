@@ -11,14 +11,15 @@ import MyGroups from "./Groups/MyGroups";
 import GroupDetails from "./Groups/GroupDetails";
 import RecentActivity from "./Groups/RecentActivity";
 import Dashboard from "./Users/Dashboard";
+import LandingPage from "./LandingPage/LandingPage";
 
 class Routing extends Component {
   render() {
     return (
       <div>
         {/* All */}
-        {/* <Route path="/" component={} /> */}
         <Route path="/" component={Navbar} />
+        <Route path="/" exact component={LandingPage} />
         {/* Users */}
         <Route path="/signup" component={SignUp} />
         <Route path="/login" component={Login} />

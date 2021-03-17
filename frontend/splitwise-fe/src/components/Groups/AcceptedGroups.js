@@ -25,7 +25,6 @@ class AcceptedGroups extends Component {
   }
 
   togglePopup = () => {
-    console.log("inside");
     this.setState({
       isPopUpOpen: !this.state.isPopUpOpen,
       error: false,

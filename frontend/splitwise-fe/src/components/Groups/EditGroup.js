@@ -98,7 +98,6 @@ class EditGroup extends Component {
   };
 
   render() {
-    console.log(this.props.groupDetails.image);
     if (!this.state.tokenState) {
       return utils.getRedirectComponent("/login");
     } else {

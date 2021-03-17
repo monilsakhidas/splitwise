@@ -25,7 +25,6 @@ class GroupDetails extends Component {
     const [tokenState, _, __, loggedInUserId] = utils.isJWTValid(
       cookie.load("jwtToken")
     );
-    console.log();
     if (this.props.location.state) {
       this.state = {
         tokenState,
@@ -151,7 +150,6 @@ class GroupDetails extends Component {
           </div>
         );
       }
-      console.log(groupDebts);
       if (this.state.groupBalances.length != 0) {
         groupBalances = this.state.groupBalances.map((userBalance) => {
           return (

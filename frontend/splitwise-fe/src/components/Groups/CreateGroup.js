@@ -39,7 +39,6 @@ class CreateGroup extends Component {
         const userIdList = this.state.users.map((user) => {
           return user.value;
         });
-        console.log(userIdList);
         formData.append("name", this.state.name);
         formData.append("users", userIdList);
         const response = await axios.post(

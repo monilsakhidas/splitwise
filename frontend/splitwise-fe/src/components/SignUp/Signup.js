@@ -81,13 +81,11 @@ class SignUp extends Component {
   };
 
   handleOnSubmit = (submitEvent) => {
-    console.log("Inside");
     submitEvent.preventDefault();
     const { error, errorMessage, tokenState, ...data } = this.state;
     axios
       .post(config.BACKEND_URL + "/users/signup", data)
       .then((res) => {
-        console.log(res);
         if (res.status === 200) {
           this.setState({ error: false });
           cookie.save("jwtToken", res.data.token, {

@@ -1,14 +1,12 @@
 const chai = require("chai");
 const chaiHttp = require("chai-http");
-
 chai.use(chaiHttp);
-
 const assert = chai.assert;
 const expect = chai.expect;
-
 // Test variables
 const token =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibmFtZSI6IkxvbGl0YSIsImVtYWlsIjoiZGVtbzFAZ21haWwuY29tIiwiY3VycmVuY3lJZCI6MiwiaWF0IjoxNjE1NzU5MDU3fQ.R1nEViofb3Zj8Xe0iHZIysylqasn_8WKGS4WcjlJEl4";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibmFtZSI6IkxvbGl0YSIsImVtYWlsIjoiZGVtbzFAZ21haWwuY29tIiwiY3VycmVuY3lJZCI6MiwiaWF0I" +
+  "joxNjE1NzU5MDU3fQ.R1nEViofb3Zj8Xe0iHZIysylqasn_8WKGS4WcjlJEl4";
 const groupName = "Updated Group Name";
 const id = 1;
 
@@ -37,7 +35,7 @@ it("Should get all the currencies present in the database", function (done) {
     });
 });
 
-it("Should not allow to fetch recent activity if the user is unauthorized or token is not set in headers", function (done) {
+it("Should not allow to fetch recent activity if the user isunauthorized or token is not set", function (done) {
   chai
     .request("http://127.0.0.1:3001")
     .get("/users/activity")

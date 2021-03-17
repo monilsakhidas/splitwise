@@ -193,7 +193,6 @@ router.post("/login", async (req, res) => {
   const result = await schema.validate(req.body);
 
   if (result.error) {
-    //console.log(result.error.details[0].message);
     res.status(400).send({ errorMessage: result.error.details[0].message });
     return;
   }
@@ -607,9 +606,6 @@ router.get(
               positiveAmount
             );
           } else {
-            // console.log("=============Inside======================");
-            // console.log(youAreOwed[userId]["amount"][currencyId][0]);
-            // console.log("=============Inside======================");
             youAreOwed[userId]["amount"][
               currencyId
             ] = utils.getFormattedAmountWithCurrency(
@@ -635,9 +631,6 @@ router.get(
               negativeAmount
             );
           } else {
-            // console.log("=============Inside======================");
-            // console.log(youOwe[userId]["amount"][currencyId][0]);
-            // console.log("=============Inside======================");
             youOwe[userId]["amount"][
               currencyId
             ] = utils.getFormattedAmountWithCurrency(
@@ -801,10 +794,6 @@ router.get(
           }
         }
       }
-
-      // Add name of the user
-      // youAreOwed[userId]["name"] =
-
       // delete unnecessary entries
       if (youAreOwed[userId]["statements"].length == 0) {
         delete youAreOwed[userId];
@@ -813,7 +802,6 @@ router.get(
         delete youOwe[userId];
       }
     }
-    // console.log(JSON.stringify({ youAreOwed, youOwe }));
     res.status(200).send({ youAreOwed, youOwe });
   }
 );

@@ -149,6 +149,4 @@ for (let userId in groupedByUser) {
       return b.currency.id;
     })
     .value();
-  console.log(userId.toUpperCase());
-  console.log(groupedByUserByCurrency);
 }
