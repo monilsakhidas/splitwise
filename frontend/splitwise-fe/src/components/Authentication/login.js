@@ -39,9 +39,6 @@ class Login extends Component {
   handleSubmit = (submitEvent) => {
     submitEvent.preventDefault();
     const { error, errorMessage, tokenState, ...data } = this.state;
-    console.log(config.BACKEND_URL);
-    console.log(process.env);
-    console.log(process.env.backendUrl);
     axios
       .post(config.BACKEND_URL + "/users/login", data)
       .then((res) => {
