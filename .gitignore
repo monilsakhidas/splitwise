@@ -107,8 +107,8 @@ dist
 # *.jpeg
 # *.png
 # *.jpg
-# group/
-# profile/
+group/
+profile/
 
 .DS_Store
 .history
