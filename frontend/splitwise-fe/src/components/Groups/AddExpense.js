@@ -3,7 +3,17 @@ import utils from "../../utils/utils";
 import config from "../../config/config";
 import cookie from "react-cookies";
 import axios from "axios";
+import Lottie from "react-lottie";
+import * as loading from "../../animations/196-material-wave-loading.json";
 
+const loadingOptions = {
+  loop: true,
+  autoplay: true,
+  animationData: loading.default,
+  rendererSettings: {
+    preserverAspectRatio: "xMidYMid slice",
+  },
+};
 class AddExpense extends Component {
   constructor(props) {
     super(props);
@@ -19,6 +29,7 @@ class AddExpense extends Component {
       amount: "",
       description: "",
       currencySymbol: "",
+      isDisabled: false,
       error: false,
       errorMessage: "",
     };
@@ -27,7 +38,7 @@ class AddExpense extends Component {
   handleAmountChange = (amountChangeEvent) => {
     if (amountChangeEvent.target.value <= 0) {
       this.setState({
-        errorMessage: "Enter a valid amount to record the expense",
+        errorMessage: "Enter a valid amount",
         error: true,
         amount: "",
       });
@@ -48,7 +59,7 @@ class AddExpense extends Component {
     ) {
       this.setState({
         error: true,
-        errorMessage: "Description should not contain any special characters.",
+        errorMessage: "Special characters not allowed.",
         description: "",
       });
     } else {
@@ -63,6 +74,10 @@ class AddExpense extends Component {
   handleSubmit = async (handleSubmitEvent) => {
     handleSubmitEvent.preventDefault();
     try {
+      // Disabling the submit form button
+      this.setState({
+        isDisabled: true,
+      });
       const response = await axios.post(
         config.BACKEND_URL + "/groups/addexpense",
         {
@@ -86,6 +101,10 @@ class AddExpense extends Component {
       } else {
         console.log(error);
       }
+      // Enabling the submit form button
+      this.setState({
+        isDisabled: false,
+      });
     }
   };
 
@@ -119,6 +138,12 @@ class AddExpense extends Component {
           <div style={{ color: "red", display: "block" }}>
             {this.state.errorMessage}
           </div>
+        );
+      }
+      let animation = null;
+      if (this.state.isDisabled) {
+        animation = (
+          <Lottie options={loadingOptions} height={120} width={120} />
         );
       }
       return (
@@ -223,15 +248,26 @@ class AddExpense extends Component {
                       onChange={this.handleAmountChange}
                     ></input>
                   </div>
-
+                  <div
+                    className="row"
+                    style={{
+                      marginTop: "-20px",
+                      height: "120px",
+                      width: "120px",
+                      marginLeft: "12px",
+                    }}
+                  >
+                    {animation}
+                  </div>
                   <button
                     type="submit"
                     className="btn btn-amber"
                     style={{
                       backgroundColor: "#20BF9F",
-                      marginTop: "20px",
+                      marginTop: "-39px",
                       marginLeft: "0px",
                     }}
+                    disabled={this.state.isDisabled}
                     onSubmit={this.handleSubmit}
                   >
                     Save
@@ -241,7 +277,7 @@ class AddExpense extends Component {
                     className="btn btn-danger"
                     style={{
                       backgroundColor: "red",
-                      marginTop: "20px",
+                      marginTop: "-39px",
                       marginLeft: "10px",
                     }}
                     onClick={this.props.closePopUp}

@@ -4,6 +4,17 @@ import config from "../../config/config";
 import cookie from "react-cookies";
 import axios from "axios";
 import Select from "react-select";
+import Lottie from "react-lottie";
+import * as loading from "../../animations/196-material-wave-loading.json";
+
+const loadingOptions = {
+  loop: true,
+  autoplay: true,
+  animationData: loading.default,
+  rendererSettings: {
+    preserverAspectRatio: "xMidYMid slice",
+  },
+};
 
 class SettleUp extends Component {
   constructor(props) {
@@ -14,6 +25,8 @@ class SettleUp extends Component {
       error: false,
       errorMessage: "",
       selectedUserId: "",
+      isDisabled: false,
+      isLoading: false,
     };
   }
 
@@ -65,7 +78,11 @@ class SettleUp extends Component {
 
   handleSubmit = async (onSubmitEvent) => {
     onSubmitEvent.preventDefault();
-    console.log("inside");
+    // Disabling the submit form button for settle up
+    this.setState({
+      isDisabled: true,
+      isLoading: true,
+    });
     try {
       const response = await axios.post(
         config.BACKEND_URL + "/users/settle",
@@ -75,6 +92,9 @@ class SettleUp extends Component {
         }
       );
       if (response.status === 200) {
+        this.setState({
+          isLoading: false,
+        });
         window.location.reload();
       }
     } catch (error) {
@@ -87,10 +107,14 @@ class SettleUp extends Component {
           error: true,
           errorMessage: error.response.data.errorMessage,
         });
-        console.log(this.state);
       } else {
         console.log(error);
       }
+      // Enabling the submit form button for settle up
+      this.setState({
+        isDisabled: false,
+        isLoading: false,
+      });
     }
   };
 
@@ -104,6 +128,12 @@ class SettleUp extends Component {
           <div style={{ color: "red", display: "block" }}>
             {this.state.errorMessage}
           </div>
+        );
+      }
+      let animation = null;
+      if (this.state.isLoading) {
+        animation = (
+          <Lottie options={loadingOptions} height={120} width={200} />
         );
       }
       return (
@@ -134,6 +164,18 @@ class SettleUp extends Component {
               </div>
             </div>
 
+            <div
+              className="row"
+              style={{
+                marginTop: "60px",
+                height: "120px",
+                width: "120px",
+                marginLeft: "159px",
+              }}
+            >
+              {animation}
+            </div>
+
             <div className="row">
               <form method="post" onSubmit={this.handleSubmit}>
                 <button
@@ -141,10 +183,11 @@ class SettleUp extends Component {
                   className="btn btn-amber align-self-end"
                   style={{
                     backgroundColor: "#5BC5A7",
-                    marginTop: "250px",
+                    marginTop: "70px",
                     marginLeft: "22px",
                     color: "#FFFFFF",
                   }}
+                  disabled={this.state.isDisabled}
                   onSubmit={this.handleSubmit}
                 >
                   Settle up
@@ -155,7 +198,7 @@ class SettleUp extends Component {
                 className="btn btn-danger"
                 style={{
                   backgroundColor: "red",
-                  marginTop: "250px",
+                  marginTop: "70px",
                   marginLeft: "10px",
                 }}
                 onClick={this.props.closePopUp}
