@@ -183,7 +183,8 @@ class RecentActivity extends Component {
                       <div
                         style={{
                           color:
-                            activity.balanceStatement.indexOf("get") == -1
+                            activity.expenseStatement &&
+                            activity.expenseStatement.indexOf("get") == -1
                               ? "orange"
                               : "#20BF9F",
                         }}
