@@ -36,7 +36,7 @@ config.searchLimit = 10;
 
 //Setting frontend url for cors
 config.frontendUrl =
-  "http://splitwise-prototype.herokuapp.com" || "http://localhost:3000";
+  "https://splitwise-prototype.herokuapp.com" || "http://localhost:3000";
 
 // exporting config file
 module.exports = config;
