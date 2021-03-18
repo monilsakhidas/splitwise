@@ -122,7 +122,10 @@ class RecentActivity extends Component {
       return utils.getRedirectComponent("/login");
     } else {
       let activityCards = null;
-      if (this.state.activities == null) {
+      if (
+        this.state.activities == null ||
+        (this.state.activities && this.state.activities.length == 0)
+      ) {
         activityCards = (
           <div style={{ marginTop: "230px", marginLeft: "370px" }}>
             <h4 style={{ font: "Bookman" }}>No recent activity</h4>
