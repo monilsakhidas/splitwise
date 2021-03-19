@@ -151,7 +151,14 @@ const config = {
     },
     { label: "(GMT+13:00) Nuku'alofa", value: "Pacific/Tongatapu" },
   ],
-  language: [{ value: "EN", label: "English" }],
+  language: [
+    { value: "EN", label: "English" },
+    { value: "FR", label: "French" },
+    { value: "ESP", label: "Spanish" },
+    { value: "Hi", label: "Hindi" },
+    { value: "CHI", label: "Chinese" },
+    { value: "JPN", label: "Japanese" },
+  ],
 };
 
 export default config;
