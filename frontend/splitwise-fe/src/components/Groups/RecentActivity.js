@@ -4,7 +4,7 @@ import config from "../../config/config";
 import cookie from "react-cookies";
 import axios from "axios";
 import Select from "react-select";
-
+import defaultProfileImage from "../../images/profile_placeholder.jpg";
 class RecentActivity extends Component {
   constructor(props) {
     super(props);
@@ -160,6 +160,10 @@ class RecentActivity extends Component {
                           ? utils.getProfileImageUrl()
                           : utils.getProfileImageUrl(activity.image)
                       }
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = defaultProfileImage;
+                      }}
                     />
                   </div>
                   <div class="card-body">

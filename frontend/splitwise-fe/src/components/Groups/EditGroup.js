@@ -3,6 +3,7 @@ import cookie from "react-cookies";
 import utils from "../../utils/utils";
 import config from "../../config/config";
 import axios from "axios";
+import defaultGroupPhoto from "../../images/splitwise-logo.png";
 
 class EditGroup extends Component {
   constructor(props) {
@@ -116,7 +117,16 @@ class EditGroup extends Component {
           <div className="row" style={{ height: "100vh" }}>
             <div className="col-3"></div>
             <div className="col-2">
-              <img src={this.state.image} width="200" height="200" alt="" />
+              <img
+                src={this.state.image}
+                width="200"
+                height="200"
+                alt=""
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = defaultGroupPhoto;
+                }}
+              />
               <div className="row">
                 <input
                   style={{ marginLeft: "20px", marginTop: "30px" }}

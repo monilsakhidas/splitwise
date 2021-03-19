@@ -6,6 +6,7 @@ import config from "../../config/config";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import EditGroup from "./EditGroup";
+import defaultGroupPhoto from "../../images/splitwise-logo.png";
 
 class AcceptedGroups extends Component {
   constructor(props) {
@@ -31,6 +32,13 @@ class AcceptedGroups extends Component {
       errorMessage: "",
     });
   };
+
+  // urlExists = (url) => {
+  //   var http = new XMLHttpRequest();
+  //   http.open("HEAD", url, false);
+  //   http.send();
+  //   return http.status != 404;
+  // };
 
   leaveGroup = async (onClickEvent) => {
     try {
@@ -120,7 +128,16 @@ class AcceptedGroups extends Component {
           <div class="card">
             <div class="row">
               <div class="col-sm-3">
-                <img src={this.state.image} width="134" height="114" alt="" />
+                <img
+                  src={this.state.image}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = defaultGroupPhoto;
+                  }}
+                  width="134"
+                  height="114"
+                  alt=""
+                />
               </div>
               <div class="col-sm-9">
                 <div

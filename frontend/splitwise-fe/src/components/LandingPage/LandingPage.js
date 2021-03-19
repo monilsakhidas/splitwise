@@ -17,7 +17,7 @@ class LandingPage extends Component {
           <div class="home-background h-100">
             <div class="container">
               <div class="row">
-                <div class="col-5">
+                <div class="col-5 div-pad">
                   <div>
                     <h1>
                       <strong>

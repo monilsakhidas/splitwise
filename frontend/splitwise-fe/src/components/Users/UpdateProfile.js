@@ -5,6 +5,7 @@ import splitwiselogo from "../../images/splitwise-logo.png";
 import Select from "react-select";
 import config from "../../config/config";
 import axios from "axios";
+import defaultProfileImage from "../../images/profile_placeholder.jpg";
 
 let currencies = [];
 class UpdateProfile extends Component {
@@ -301,6 +302,10 @@ class UpdateProfile extends Component {
                   width="200"
                   height="200"
                   alt=""
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = defaultProfileImage;
+                  }}
                 />
 
                 <div className="row">

@@ -16,13 +16,14 @@ class Navbar extends Component {
             class="navbar navbar-expand-lg navbar-dark"
             style={{ backgroundColor: "#20BF9F" }}
           >
-            <img
-              style={{ marginLeft: "100px" }}
-              src={splitwiselogo}
-              width="60"
-              height="50"
-              alt=""
-            />
+            <a href="/">
+              <img
+                style={{ marginLeft: "100px" }}
+                src={splitwiselogo}
+                width="60"
+                height="50"
+              />
+            </a>
             <h2
               style={{
                 color: "black",
@@ -31,9 +32,11 @@ class Navbar extends Component {
                 color: "white",
               }}
             >
-              <strong style={{ color: "white", fontSize: 25 }}>
-                Splitwise
-              </strong>
+              <a href="/" style={{ textDecoration: "none" }}>
+                <strong style={{ color: "white", fontSize: 25 }}>
+                  Splitwise
+                </strong>
+              </a>
             </h2>
             <li
               class="nav-item dropdown"
@@ -101,13 +104,14 @@ class Navbar extends Component {
             class="navbar navbar-expand-lg navbar-dark"
             style={{ backgroundColor: "#20BF9F" }}
           >
-            <img
-              style={{ marginLeft: "170px" }}
-              src={splitwiselogo}
-              width="60"
-              height="50"
-              alt=""
-            />
+            <a href="/">
+              <img
+                style={{ marginLeft: "170px" }}
+                src={splitwiselogo}
+                width="60"
+                height="50"
+              />
+            </a>
 
             <h2
               style={{
@@ -117,9 +121,11 @@ class Navbar extends Component {
                 color: "white",
               }}
             >
-              <strong style={{ color: "white", fontSize: 25 }}>
-                Splitwise
-              </strong>
+              <a href="/" style={{ textDecoration: "none" }}>
+                <strong style={{ color: "white", fontSize: 25 }}>
+                  Splitwise
+                </strong>
+              </a>
             </h2>
             <button
               class="navbar-toggler"

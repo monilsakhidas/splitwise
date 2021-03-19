@@ -170,6 +170,10 @@ class CreateGroup extends Component {
                 width="200"
                 height="200"
                 alt=""
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = splitwiselogo;
+                }}
               />
               <div className="row p-1 m-3">
                 <input

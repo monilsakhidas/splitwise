@@ -5,6 +5,7 @@ import cookie from "react-cookies";
 import axios from "axios";
 import Lottie from "react-lottie";
 import * as loading from "../../animations/196-material-wave-loading.json";
+import defaultGroupPhoto from "../../images/splitwise-logo.png";
 
 const loadingOptions = {
   loop: true,
@@ -173,6 +174,10 @@ class AddExpense extends Component {
                     marginBottom: "3px",
                   }}
                   src={this.state.groupImage}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = defaultGroupPhoto;
+                  }}
                   width="20"
                   height="20"
                   alt=""

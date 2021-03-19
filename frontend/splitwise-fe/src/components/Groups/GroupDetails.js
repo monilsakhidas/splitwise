@@ -5,6 +5,8 @@ import cookie from "react-cookies";
 import axios from "axios";
 import AddExpense from "./AddExpense";
 import Modal from "react-modal";
+import defaultProfileImage from "../../images/profile_placeholder.jpg";
+import defaultGroupPhoto from "../../images/splitwise-logo.png";
 
 const customStyles = {
   content: {
@@ -112,6 +114,10 @@ class GroupDetails extends Component {
                               ? utils.getProfileImageUrl()
                               : utils.getProfileImageUrl(loan.loaneeImage)
                           }
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = defaultProfileImage;
+                          }}
                         />
                       </div>
                       <div class="col-sm-8">
@@ -168,6 +174,10 @@ class GroupDetails extends Component {
                               ? utils.getProfileImageUrl()
                               : utils.getProfileImageUrl(userBalance.image)
                           }
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = defaultProfileImage;
+                          }}
                         />
                       </div>
                       <div class="col-sm-8">
@@ -228,6 +238,10 @@ class GroupDetails extends Component {
                           ? utils.getProfileImageUrl()
                           : utils.getProfileImageUrl(expense.image)
                       }
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = defaultProfileImage;
+                      }}
                     />
                   </div>
                   <div class="card-body">
@@ -369,6 +383,10 @@ class GroupDetails extends Component {
                       marginTop: "10px",
                     }}
                     src={this.state.image}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = defaultGroupPhoto;
+                    }}
                   />
                 </div>
                 <div

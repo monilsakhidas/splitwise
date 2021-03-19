@@ -5,6 +5,7 @@ import cookie from "react-cookies";
 import axios from "axios";
 import Modal from "react-modal";
 import SettleUp from "../Users/SettleUp";
+import defaultProfileImage from "../../images/profile_placeholder.jpg";
 
 const customStyles = {
   content: {
@@ -145,6 +146,10 @@ class Dashboard extends Component {
                               this.state.youOwe[key].image
                             )
                       }
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = defaultProfileImage;
+                      }}
                     />
                   </div>
                   <div class="card-body">
@@ -219,6 +224,10 @@ class Dashboard extends Component {
                               this.state.youAreOwed[key].image
                             )
                       }
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = defaultProfileImage;
+                      }}
                     />
                   </div>
                   <div class="card-body">
