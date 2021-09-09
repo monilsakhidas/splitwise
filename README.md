@@ -1,1 +1,2 @@
-# Developed a prototype of Splitwise using Node, React, Express and MySQL
+# Splitwise Prototype
+Technologies used: Node, Express, React, MySQL
